@@ -353,7 +353,7 @@
             <p id="headerSubtitle">Collaborative homework management for your class</p>
         </div>
 
-        <div class="config-panel" id="configPanel">
+        <div class="config-panel" id="configPanel" style="display: none;">
             <strong>GitHub Configuration Required:</strong><br>
             Repository Owner: <input type="text" id="repoOwner" class="config-input" placeholder="username" value="">
             Repository Name: <input type="text" id="repoName" class="config-input" placeholder="repository-name" value="">
@@ -463,9 +463,7 @@
                 this.updateWeekDisplay();
                 this.updateStats();
                 this.checkConfig();
-                if (this.repoOwner && this.repoName) {
-                    this.loadFromGitHub();
-                }
+                this.loadFromGitHub();
             }
 
             checkConfig() {
@@ -477,8 +475,9 @@
                 repoNameInput.value = this.repoName;
                 
                 if (!this.repoOwner || !this.repoName) {
-                    configPanel.style.display = 'block';
-                    this.updateSyncStatus('⚠️ Config needed', 'error');
+                    // Enable local-only mode (no GitHub)
+                    configPanel.style.display = 'none';
+                    this.updateSyncStatus('✅ Local mode', 'synced');
                 } else {
                     configPanel.style.display = 'none';
                     this.updateSyncStatus('🔄 Syncing...', 'syncing');
@@ -512,7 +511,15 @@
             }
 
             async loadFromGitHub() {
-                if (!this.repoOwner || !this.repoName) return;
+                // In local-only mode, load from localStorage and return
+                if (!this.repoOwner || !this.repoName) {
+                    const localData = localStorage.getItem('homeworkData');
+                    this.homeworkData = localData ? JSON.parse(localData) : {};
+                    this.updateSyncStatus('✅ Local mode', 'synced');
+                    this.loadHomework();
+                    this.updateStats();
+                    return;
+                }
                 
                 try {
                     const response = await fetch(`https://api.github.com/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`);
@@ -546,7 +553,12 @@
             }
 
             async saveToGitHub() {
-                if (!this.repoOwner || !this.repoName) return;
+                // In local-only mode, persist to localStorage
+                if (!this.repoOwner || !this.repoName) {
+                    localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
+                    this.updateSyncStatus('✅ Saved locally', 'synced');
+                    return;
+                }
                 
                 try {
                     this.updateSyncStatus('🔄 Saving...', 'syncing');
