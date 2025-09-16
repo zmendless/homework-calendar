@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Homework Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .day-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            overflow: hidden;
+        }
+
+        .day-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+            border-color: #4facfe;
+        }
+
+        .day-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-weight: 600;
+            font-size: 1.3em;
+            text-align: center;
+            position: relative;
+        }
+
+        .day-content {
+            padding: 20px;
+        }
+
+        .homework-list {
+            min-height: 200px;
+            margin-bottom: 20px;
+        }
+
+        .homework-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+            border-left: 4px solid #4facfe;
+        }
+
+        .homework-item:hover {
+            background: #e3f2fd;
+            transform: translateX(5px);
+        }
+
+        .homework-text {
+            background: none;
+            border: none;
+            width: 100%;
+            font-size: 1em;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 40px;
+            font-family: inherit;
+            color: #333;
+        }
+
+        .homework-text:focus {
+            outline: none;
+            background: white;
+        }
+
+        .homework-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-delete {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #ff3838;
+            transform: scale(1.05);
+        }
+
+        .btn-done {
+            background: #2ed573;
+            color: white;
+        }
+
+        .btn-done:hover {
+            background: #1dd1a1;
+            transform: scale(1.05);
+        }
+
+        .homework-item.completed {
+            opacity: 0.7;
+            text-decoration: line-through;
+            border-left-color: #2ed573;
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+        }
+
+        .add-homework {
+            display: flex;
+            gap: 10px;
+        }
+
+        .add-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .add-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-add:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 20px;
+            margin: 20px 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .week-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            margin: 0 30px 20px 30px;
+            border-radius: 15px;
+        }
+
+        .btn-nav {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-nav:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .current-week {
+            color: white;
+            font-weight: 600;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .stat-item {
+            color: #333;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            display: block;
+            color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 30px;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 768px) {
+            .days-grid {
+                grid-template-columns: 1fr;
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .add-homework {
+                flex-direction: column;
+            }
+
+            .week-navigation {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .current-week {
+                order: -1;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="position: absolute; top: 20px; right: 20px;">
+                <select id="languageSelector" onchange="homeworkManager.changeLanguage(this.value)" style="padding: 8px 12px; border: none; border-radius: 20px; background: rgba(255,255,255,0.2); color: white; font-weight: 600; cursor: pointer;">
+                    <option value="en">🇺🇸 English</option>
+                    <option value="tr">🇹🇷 Türkçe</option>
+                </select>
+            </div>
+            <h1 id="headerTitle">📚 Homework Hub</h1>
+            <p id="headerSubtitle">Collaborative homework management for your class</p>
+        </div>
+
+        <div class="week-navigation">
+            <button class="btn-nav" id="prevWeek" onclick="homeworkManager.changeWeek(-1)">← <span id="prevWeekLabel">Previous Week</span></button>
+            <div class="current-week">
+                <span id="currentWeekLabel">Current Week</span>: <span id="weekDisplay"></span>
+            </div>
+            <button class="btn-nav" id="nextWeek" onclick="homeworkManager.changeWeek(1)"><span id="nextWeekLabel">Next Week</span> →</button>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <span class="stat-number" id="totalHomework">0</span>
+                <span id="totalTasksLabel">Total Tasks</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="completedHomework">0</span>
+                <span id="completedLabel">Completed</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="pendingHomework">0</span>
+                <span id="pendingLabel">Pending</span>
+            </div>
+        </div>
+
+        <div class="days-grid" id="daysGrid">
+            <!-- Days will be dynamically generated -->
+        </div>
+    </div>
+
+    <script>
+        // Language pack system
+        const languages = {
+            en: {
+                headerTitle: "📚 Homework Hub",
+                headerSubtitle: "Collaborative homework management for your class",
+                totalTasksLabel: "Total Tasks",
+                completedLabel: "Completed",
+                pendingLabel: "Pending",
+                currentWeekLabel: "Current Week",
+                prevWeekLabel: "Previous Week",
+                nextWeekLabel: "Next Week",
+                days: {
+                    Monday: "Monday",
+                    Tuesday: "Tuesday", 
+                    Wednesday: "Wednesday",
+                    Thursday: "Thursday",
+                    Friday: "Friday",
+                    Saturday: "Saturday",
+                    Sunday: "Sunday"
+                },
+                emptyState: "No homework yet. Add some below!",
+                addPlaceholder: "Add new homework...",
+                addButton: "➕ Add",
+                doneButton: "✅ Done",
+                undoButton: "↩️ Undo", 
+                deleteButton: "🗑️ Delete",
+                deleteConfirm: "Are you sure you want to delete this homework?"
+            },
+            tr: {
+                headerTitle: "📚 Ödev Merkezi",
+                headerSubtitle: "Sınıfınız için işbirlikçi ödev yönetimi",
+                totalTasksLabel: "Toplam Görev",
+                completedLabel: "Tamamlanan",
+                pendingLabel: "Bekleyen",
+                currentWeekLabel: "Bu Hafta",
+                prevWeekLabel: "Önceki Hafta",
+                nextWeekLabel: "Sonraki Hafta",
+                days: {
+                    Monday: "Pazartesi",
+                    Tuesday: "Salı",
+                    Wednesday: "Çarşamba", 
+                    Thursday: "Perşembe",
+                    Friday: "Cuma",
+                    Saturday: "Cumartesi",
+                    Sunday: "Pazar"
+                },
+                emptyState: "Henüz ödev yok. Aşağıdan ekleyin!",
+                addPlaceholder: "Yeni ödev ekle...",
+                addButton: "➕ Ekle",
+                doneButton: "✅ Tamam",
+                undoButton: "↩️ Geri Al",
+                deleteButton: "🗑️ Sil", 
+                deleteConfirm: "Bu ödevi silmek istediğinizden emin misiniz?"
+            }
+        };
+
+        class HomeworkManager {
+            constructor() {
+                this.currentLanguage = localStorage.getItem('homework_language') || 'en';
+                this.currentWeekOffset = 0; // 0 = this week, 1 = next week, -1 = previous week
+                this.days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                this.homeworkData = this.loadData();
+                this.init();
+            }
+
+            init() {
+                this.setLanguage(this.currentLanguage);
+                this.createDayCards();
+                this.updateWeekDisplay();
+                this.updateStats();
+                this.loadHomework();
+            }
+
+            setLanguage(lang) {
+                this.currentLanguage = lang;
+                localStorage.setItem('homework_language', lang);
+                
+                // Update language selector
+                document.getElementById('languageSelector').value = lang;
+                
+                // Update header
+                document.getElementById('headerTitle').textContent = languages[lang].headerTitle;
+                document.getElementById('headerSubtitle').textContent = languages[lang].headerSubtitle;
+                
+                // Update stats labels
+                document.getElementById('totalTasksLabel').textContent = languages[lang].totalTasksLabel;
+                document.getElementById('completedLabel').textContent = languages[lang].completedLabel;
+                document.getElementById('pendingLabel').textContent = languages[lang].pendingLabel;
+
+                // Update navigation labels
+                document.getElementById('currentWeekLabel').textContent = languages[lang].currentWeekLabel;
+                document.getElementById('prevWeekLabel').textContent = languages[lang].prevWeekLabel;
+                document.getElementById('nextWeekLabel').textContent = languages[lang].nextWeekLabel;
+            }
+
+            changeLanguage(lang) {
+                this.setLanguage(lang);
+                this.createDayCards();
+                this.loadHomework();
+            }
+
+            getWeekDates(weekOffset = 0) {
+                const today = new Date();
+                const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+                const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Calculate days to Monday
+                
+                const monday = new Date(today);
+                monday.setDate(today.getDate() + mondayOffset + (weekOffset * 7));
+                
+                const dates = [];
+                for (let i = 0; i < 7; i++) {
+                    const date = new Date(monday);
+                    date.setDate(monday.getDate() + i);
+                    dates.push(date);
+                }
+                
+                return dates;
+            }
+
+            updateWeekDisplay() {
+                const dates = this.getWeekDates(this.currentWeekOffset);
+                const startDate = dates[0];
+                const endDate = dates[6];
+                
+                const formatDate = (date) => {
+                    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+                };
+                
+                document.getElementById('weekDisplay').textContent = 
+                    `${formatDate(startDate)} - ${formatDate(endDate)}`;
+            }
+
+            changeWeek(direction) {
+                this.currentWeekOffset += direction;
+                this.updateWeekDisplay();
+                this.createDayCards();
+                this.loadHomework();
+                this.updateStats();
+            }
+
+            getWeekKey() {
+                const dates = this.getWeekDates(this.currentWeekOffset);
+                const monday = dates[0];
+                return `${monday.getFullYear()}-W${Math.ceil(monday.getDate() / 7)}-${monday.getMonth()}`;
+            }
+
+            createDayCards() {
+                const daysGrid = document.getElementById('daysGrid');
+                daysGrid.innerHTML = '';
+                const dates = this.getWeekDates(this.currentWeekOffset);
+                
+                this.days.forEach((day, index) => {
+                    const dayCard = document.createElement('div');
+                    dayCard.className = 'day-card';
+                    const translatedDay = languages[this.currentLanguage].days[day];
+                    const date = dates[index];
+                    const dateStr = `${date.getDate()}/${date.getMonth() + 1}`;
+                    
+                    dayCard.innerHTML = `
+                        <div class="day-header">
+                            <h3>${translatedDay}</h3>
+                            <div style="font-size: 0.9em; opacity: 0.8;">${dateStr}</div>
+                        </div>
+                        <div class="day-content">
+                            <div class="homework-list" id="homework-${day}">
+                                <div class="empty-state">${languages[this.currentLanguage].emptyState}</div>
+                            </div>
+                            <div class="add-homework">
+                                <input type="text" class="add-input" placeholder="${languages[this.currentLanguage].addPlaceholder}" 
+                                       onkeypress="if(event.key==='Enter') homeworkManager.addHomework('${day}', this)">
+                                <button class="btn-add" onclick="homeworkManager.addHomework('${day}', this.previousElementSibling)">
+                                    ${languages[this.currentLanguage].addButton}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    daysGrid.appendChild(dayCard);
+                });
+            }
+
+            addHomework(day, inputElement) {
+                const text = inputElement.value.trim();
+                if (!text) return;
+
+                const homework = {
+                    id: Date.now(),
+                    text: text,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                const weekKey = this.getWeekKey();
+                if (!this.homeworkData[weekKey]) {
+                    this.homeworkData[weekKey] = {};
+                }
+                if (!this.homeworkData[weekKey][day]) {
+                    this.homeworkData[weekKey][day] = [];
+                }
+
+                this.homeworkData[weekKey][day].push(homework);
+                this.saveData();
+                this.renderHomework(day);
+                this.updateStats();
+                
+                inputElement.value = '';
+                inputElement.focus();
+            }
+
+            renderHomework(day) {
+                const container = document.getElementById(`homework-${day}`);
+                const weekKey = this.getWeekKey();
+                const homeworks = this.homeworkData[weekKey]?.[day] || [];
+
+                if (homeworks.length === 0) {
+                    container.innerHTML = `<div class="empty-state">${languages[this.currentLanguage].emptyState}</div>`;
+                    return;
+                }
+
+                const lang = languages[this.currentLanguage];
+                
+                container.innerHTML = homeworks.map(homework => `
+                    <div class="homework-item fade-in ${homework.completed ? 'completed' : ''}">
+                        <textarea class="homework-text" onblur="homeworkManager.updateHomeworkText('${day}', ${homework.id}, this.value)" 
+                                  ${homework.completed ? 'readonly' : ''}>${homework.text}</textarea>
+                        <div class="homework-actions">
+                            <button class="btn btn-done" onclick="homeworkManager.toggleComplete('${day}', ${homework.id})">
+                                ${homework.completed ? lang.undoButton : lang.doneButton}
+                            </button>
+                            <button class="btn btn-delete" onclick="homeworkManager.deleteHomework('${day}', ${homework.id})">
+                                ${lang.deleteButton}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateHomeworkText(day, id, newText) {
+                const weekKey = this.getWeekKey();
+                const homeworks = this.homeworkData[weekKey]?.[day];
+                if (homeworks) {
+                    const homework = homeworks.find(h => h.id === id);
+                    if (homework && !homework.completed) {
+                        homework.text = newText.trim();
+                        this.saveData();
+                    }
+                }
+            }
+
+            toggleComplete(day, id) {
+                const weekKey = this.getWeekKey();
+                const homeworks = this.homeworkData[weekKey]?.[day];
+                if (homeworks) {
+                    const homework = homeworks.find(h => h.id === id);
+                    if (homework) {
+                        homework.completed = !homework.completed;
+                        this.saveData();
+                        this.renderHomework(day);
+                        this.updateStats();
+                    }
+                }
+            }
+
+            togglePriority(day, id) {
+                const weekKey = this.getWeekKey();
+                const homeworks = this.homeworkData[weekKey]?.[day];
+                if (homeworks) {
+                    const homework = homeworks.find(h => h.id === id);
+                    if (homework) {
+                        homework.priority = !homework.priority;
+                        this.saveData();
+                        this.renderHomework(day);
+                    }
+                }
+            }
+
+            deleteHomework(day, id) {
+                if (confirm(languages[this.currentLanguage].deleteConfirm)) {
+                    const weekKey = this.getWeekKey();
+                    const homeworks = this.homeworkData[weekKey]?.[day];
+                    if (homeworks) {
+                        this.homeworkData[weekKey][day] = homeworks.filter(h => h.id !== id);
+                        this.saveData();
+                        this.renderHomework(day);
+                        this.updateStats();
+                    }
+                }
+            }
+
+            loadHomework() {
+                this.days.forEach(day => {
+                    this.renderHomework(day);
+                });
+            }
+
+            updateStats() {
+                let total = 0;
+                let completed = 0;
+
+                // Count homework for current week only
+                const weekKey = this.getWeekKey();
+                const currentWeekData = this.homeworkData[weekKey] || {};
+                
+                Object.values(currentWeekData).forEach(dayHomework => {
+                    if (Array.isArray(dayHomework)) {
+                        dayHomework.forEach(homework => {
+                            total++;
+                            if (homework.completed) completed++;
+                        });
+                    }
+                });
+
+                const pending = total - completed;
+
+                document.getElementById('totalHomework').textContent = total;
+                document.getElementById('completedHomework').textContent = completed;
+                document.getElementById('pendingHomework').textContent = pending;
+            }
+
+            saveData() {
+                try {
+                    localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
+                } catch (e) {
+                    console.log('Could not save to localStorage');
+                }
+            }
+
+            loadData() {
+                try {
+                    const data = localStorage.getItem('homeworkData');
+                    return data ? JSON.parse(data) : {};
+                } catch (e) {
+                    console.log('Could not load from localStorage');
+                    return {};
+                }
+            }
+        }
+
+        // Initialize the homework manager
+        let homeworkManager;
+        document.addEventListener('DOMContentLoaded', () => {
+            homeworkManager = new HomeworkManager();
+        });
+
+        // Add sample data for demonstration
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (Object.keys(homeworkManager.homeworkData).length === 0) {
+                    // Add sample homework based on current language
+                    const isEnglish = homeworkManager.currentLanguage === 'en';
+                    const currentWeekKey = homeworkManager.getWeekKey();
+                    
+                    homeworkManager.homeworkData[currentWeekKey] = {
+                        'Monday': [
+                            { 
+                                id: 1, 
+                                text: isEnglish ? 'Math: Complete algebra worksheet pages 15-17' : 'Matematik: Cebir çalışma kağıdı sayfa 15-17\'yi tamamla', 
+                                completed: false, 
+                                createdAt: new Date().toISOString() 
+                            },
+                            { 
+                                id: 2, 
+                                text: isEnglish ? 'English: Read Chapter 3 and write summary' : 'İngilizce: Bölüm 3\'ü oku ve özet yaz', 
+                                completed: true, 
+                                createdAt: new Date().toISOString() 
+                            }
+                        ],
+                        'Wednesday': [
+                            { 
+                                id: 3, 
+                                text: isEnglish ? 'Science: Prepare for chemistry quiz on Friday' : 'Fen: Cuma günkü kimya sınavına hazırlan', 
+                                completed: false, 
+                                createdAt: new Date().toISOString() 
+                            }
+                        ],
+                        'Friday': [
+                            { 
+                                id: 4, 
+                                text: isEnglish ? 'History: Essay on World War II due next week' : 'Tarih: 2. Dünya Savaşı hakkında makale, gelecek hafta teslim', 
+                                completed: false, 
+                                createdAt: new Date().toISOString() 
+                            }
+                        ]
+                    };
+                    homeworkManager.loadHomework();
+                    homeworkManager.updateStats();
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
