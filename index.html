@@ -454,6 +454,7 @@
                 this.repoName = localStorage.getItem('repo_name') || '';
                 this.filePath = 'homework-data.json';
                 this.lastSha = null;
+                this.localOnly = (!this.repoOwner || !this.repoName);
                 this.init();
             }
 
@@ -474,7 +475,7 @@
                 repoOwnerInput.value = this.repoOwner;
                 repoNameInput.value = this.repoName;
                 
-                if (!this.repoOwner || !this.repoName) {
+                if (this.localOnly || !this.repoOwner || !this.repoName) {
                     // Enable local-only mode (no GitHub)
                     configPanel.style.display = 'none';
                     this.updateSyncStatus('✅ Local mode', 'synced');
@@ -512,7 +513,7 @@
 
             async loadFromGitHub() {
                 // In local-only mode, load from localStorage and return
-                if (!this.repoOwner || !this.repoName) {
+                if (this.localOnly || !this.repoOwner || !this.repoName) {
                     const localData = localStorage.getItem('homeworkData');
                     this.homeworkData = localData ? JSON.parse(localData) : {};
                     this.updateSyncStatus('✅ Local mode', 'synced');
@@ -540,7 +541,9 @@
                     }
                 } catch (error) {
                     console.error('GitHub load error:', error);
-                    this.updateSyncStatus('❌ Load failed', 'error');
+                    // Switch to local-only mode on error
+                    this.localOnly = true;
+                    this.updateSyncStatus('✅ Local mode', 'synced');
                     // Fall back to localStorage
                     const localData = localStorage.getItem('homeworkData');
                     if (localData) {
@@ -554,7 +557,7 @@
 
             async saveToGitHub() {
                 // In local-only mode, persist to localStorage
-                if (!this.repoOwner || !this.repoName) {
+                if (this.localOnly || !this.repoOwner || !this.repoName) {
                     localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
                     this.updateSyncStatus('✅ Saved locally', 'synced');
                     return;
@@ -593,9 +596,10 @@
                     }
                 } catch (error) {
                     console.error('GitHub save error:', error);
-                    this.updateSyncStatus('❌ Save failed', 'error');
-                    // Fall back to localStorage
+                    // Switch to local-only mode and save locally
+                    this.localOnly = true;
                     localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
+                    this.updateSyncStatus('✅ Saved locally', 'synced');
                 }
             }
 
