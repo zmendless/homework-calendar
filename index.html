@@ -151,21 +151,9 @@
             transform: scale(1.05);
         }
 
-        .btn-done {
-            background: #2ed573;
-            color: white;
-        }
-
-        .btn-done:hover {
-            background: #1dd1a1;
+        .btn-delete:hover {
+            background: #ff3838;
             transform: scale(1.05);
-        }
-
-        .homework-item.completed {
-            opacity: 0.7;
-            text-decoration: line-through;
-            border-left-color: #2ed573;
-            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
         }
 
         .add-homework {
@@ -364,8 +352,8 @@
                 headerTitle: "📚 Homework Hub",
                 headerSubtitle: "Collaborative homework management for your class",
                 totalTasksLabel: "Total Tasks",
-                completedLabel: "Completed",
-                pendingLabel: "Pending",
+                completedLabel: "N/A",
+                pendingLabel: "Active",
                 currentWeekLabel: "Current Week",
                 prevWeekLabel: "Previous Week",
                 nextWeekLabel: "Next Week",
@@ -381,8 +369,6 @@
                 emptyState: "No homework yet. Add some below!",
                 addPlaceholder: "Add new homework...",
                 addButton: "➕ Add",
-                doneButton: "✅ Done",
-                undoButton: "↩️ Undo", 
                 deleteButton: "🗑️ Delete",
                 deleteConfirm: "Are you sure you want to delete this homework?"
             },
@@ -390,8 +376,8 @@
                 headerTitle: "📚 Ödev Merkezi",
                 headerSubtitle: "Sınıfınız için işbirlikçi ödev yönetimi",
                 totalTasksLabel: "Toplam Görev",
-                completedLabel: "Tamamlanan",
-                pendingLabel: "Bekleyen",
+                completedLabel: "Kullanılmıyor",
+                pendingLabel: "Aktif",
                 currentWeekLabel: "Bu Hafta",
                 prevWeekLabel: "Önceki Hafta",
                 nextWeekLabel: "Sonraki Hafta",
@@ -545,7 +531,6 @@
                 const homework = {
                     id: Date.now(),
                     text: text,
-                    completed: false,
                     createdAt: new Date().toISOString()
                 };
 
@@ -579,13 +564,9 @@
                 const lang = languages[this.currentLanguage];
                 
                 container.innerHTML = homeworks.map(homework => `
-                    <div class="homework-item fade-in ${homework.completed ? 'completed' : ''}">
-                        <textarea class="homework-text" onblur="homeworkManager.updateHomeworkText('${day}', ${homework.id}, this.value)" 
-                                  ${homework.completed ? 'readonly' : ''}>${homework.text}</textarea>
+                    <div class="homework-item fade-in">
+                        <textarea class="homework-text" onblur="homeworkManager.updateHomeworkText('${day}', ${homework.id}, this.value)">${homework.text}</textarea>
                         <div class="homework-actions">
-                            <button class="btn btn-done" onclick="homeworkManager.toggleComplete('${day}', ${homework.id})">
-                                ${homework.completed ? lang.undoButton : lang.doneButton}
-                            </button>
                             <button class="btn btn-delete" onclick="homeworkManager.deleteHomework('${day}', ${homework.id})">
                                 ${lang.deleteButton}
                             </button>
@@ -598,8 +579,8 @@
                 const weekKey = this.getWeekKey();
                 const homeworks = this.homeworkData[weekKey]?.[day];
                 if (homeworks) {
-                    const homework = homeworks.find(h => h.id === id);
-                    if (homework && !homework.completed) {
+                    const homework = homeworks.find(h => h.id == id);
+                    if (homework) {
                         homework.text = newText.trim();
                         this.saveData();
                     }
@@ -607,17 +588,7 @@
             }
 
             toggleComplete(day, id) {
-                const weekKey = this.getWeekKey();
-                const homeworks = this.homeworkData[weekKey]?.[day];
-                if (homeworks) {
-                    const homework = homeworks.find(h => h.id === id);
-                    if (homework) {
-                        homework.completed = !homework.completed;
-                        this.saveData();
-                        this.renderHomework(day);
-                        this.updateStats();
-                    }
-                }
+                // Removed - no more completion feature
             }
 
             togglePriority(day, id) {
@@ -654,7 +625,6 @@
 
             updateStats() {
                 let total = 0;
-                let completed = 0;
 
                 // Count homework for current week only
                 const weekKey = this.getWeekKey();
@@ -662,34 +632,44 @@
                 
                 Object.values(currentWeekData).forEach(dayHomework => {
                     if (Array.isArray(dayHomework)) {
-                        dayHomework.forEach(homework => {
-                            total++;
-                            if (homework.completed) completed++;
-                        });
+                        total += dayHomework.length;
                     }
                 });
 
-                const pending = total - completed;
-
                 document.getElementById('totalHomework').textContent = total;
-                document.getElementById('completedHomework').textContent = completed;
-                document.getElementById('pendingHomework').textContent = pending;
+                document.getElementById('completedHomework').textContent = '-';
+                document.getElementById('pendingHomework').textContent = total;
             }
 
             saveData() {
+                // For GitHub Pages deployment, we'll use a simple approach
+                // In production, you'd want to integrate with GitHub API or another backend
                 try {
+                    // Try localStorage first (works for single user)
                     localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
+                    
+                    // For collaborative use, you could integrate with:
+                    // - GitHub API to save to a JSON file in the repo
+                    // - Firebase Realtime Database
+                    // - Any other backend service
+                    
+                    console.log('Data saved locally');
                 } catch (e) {
-                    console.log('Could not save to localStorage');
+                    console.log('Could not save data:', e);
                 }
             }
 
             loadData() {
                 try {
                     const data = localStorage.getItem('homeworkData');
-                    return data ? JSON.parse(data) : {};
+                    if (data) {
+                        console.log('Data loaded from localStorage');
+                        return JSON.parse(data);
+                    }
+                    console.log('No saved data found, starting fresh');
+                    return {};
                 } catch (e) {
-                    console.log('Could not load from localStorage');
+                    console.log('Could not load data:', e);
                     return {};
                 }
             }
