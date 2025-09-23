@@ -71,6 +71,57 @@
             background: rgba(255,0,0,0.3);
         }
 
+        .editor-status {
+            position: absolute;
+            top: 20px;
+            right: 250px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .editor-status.viewer {
+            background: rgba(255,255,0,0.3);
+        }
+
+        .editor-status.editor {
+            background: rgba(0,255,0,0.3);
+        }
+
+        .editor-login {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .editor-login input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            width: 150px;
+        }
+
+        .editor-login button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .editor-login button:hover {
+            background: white;
+        }
+
         .days-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -145,6 +196,22 @@
             background: white;
         }
 
+        .homework-text[readonly] {
+            cursor: default;
+            background: transparent;
+        }
+
+        .homework-display {
+            width: 100%;
+            font-size: 1em;
+            line-height: 1.5;
+            min-height: 40px;
+            font-family: inherit;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
         .homework-actions {
             display: flex;
             gap: 8px;
@@ -177,6 +244,10 @@
         .add-homework {
             display: flex;
             gap: 10px;
+        }
+
+        .add-homework.hidden {
+            display: none;
         }
 
         .add-input {
@@ -294,6 +365,16 @@
             color: #333;
         }
 
+        .viewer-notice {
+            background: rgba(255,255,0,0.2);
+            padding: 15px;
+            margin: 20px 30px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            border: 2px solid rgba(255,255,0,0.3);
+        }
+
         @media (max-width: 768px) {
             .days-grid {
                 grid-template-columns: 1fr;
@@ -316,6 +397,18 @@
 
             .current-week {
                 order: -1;
+            }
+
+            .editor-login {
+                position: static;
+                justify-content: center;
+                margin-top: 15px;
+            }
+
+            .editor-status {
+                position: static;
+                display: inline-block;
+                margin-top: 10px;
             }
         }
 
@@ -349,8 +442,17 @@
                 </select>
             </div>
             <div id="syncStatus" class="sync-status">⚙️ Setting up...</div>
+            <div id="editorStatus" class="editor-status viewer">👁️ Viewer Mode</div>
+            <div class="editor-login">
+                <input type="password" id="editorPassword" placeholder="Editor password" style="display: none;">
+                <button id="editorToggle" onclick="homeworkManager.toggleEditorMode()">🔑 Editor Login</button>
+            </div>
             <h1 id="headerTitle">📚 Homework Hub</h1>
             <p id="headerSubtitle">Collaborative homework management for your class</p>
+        </div>
+
+        <div class="viewer-notice" id="viewerNotice">
+            <strong>📖 You are in viewer mode.</strong> You can see all homework but cannot make changes. Contact an editor if you need to add or modify homework.
         </div>
 
         <div class="config-panel" id="configPanel" style="display: none;">
@@ -411,10 +513,18 @@
                     Sunday: "Sunday"
                 },
                 emptyState: "No homework yet. Add some below!",
+                emptyStateViewer: "No homework assigned for this day.",
                 addPlaceholder: "Add new homework...",
                 addButton: "➕ Add",
                 deleteButton: "🗑️ Delete",
-                deleteConfirm: "Are you sure you want to delete this homework?"
+                deleteConfirm: "Are you sure you want to delete this homework?",
+                editorLogin: "🔑 Editor Login",
+                editorLogout: "🚪 Logout",
+                viewerMode: "👁️ Viewer Mode",
+                editorMode: "✏️ Editor Mode",
+                viewerNotice: "📖 You are in viewer mode. You can see all homework but cannot make changes. Contact an editor if you need to add or modify homework.",
+                wrongPassword: "❌ Wrong password! Please try again.",
+                editorWelcome: "✅ Welcome, Editor! You can now make changes."
             },
             tr: {
                 headerTitle: "📚 Ödev Merkezi",
@@ -435,12 +545,18 @@
                     Sunday: "Pazar"
                 },
                 emptyState: "Henüz ödev yok. Aşağıdan ekleyin!",
+                emptyStateViewer: "Bu gün için henüz ödev atanmamış.",
                 addPlaceholder: "Yeni ödev ekle...",
                 addButton: "➕ Ekle",
-                doneButton: "✅ Tamam",
-                undoButton: "↩️ Geri Al",
                 deleteButton: "🗑️ Sil", 
-                deleteConfirm: "Bu ödevi silmek istediğinizden emin misiniz?"
+                deleteConfirm: "Bu ödevi silmek istediğinizden emin misiniz?",
+                editorLogin: "🔑 Editor Girişi",
+                editorLogout: "🚪 Çıkış",
+                viewerMode: "👁️ İzleyici Modu",
+                editorMode: "✏️ Editör Modu",
+                viewerNotice: "📖 İzleyici modundasınız. Tüm ödevleri görebilirsiniz ancak değişiklik yapamazsınız. Ödev eklemek veya değiştirmek için bir editörle iletişime geçin.",
+                wrongPassword: "❌ Yanlış şifre! Lütfen tekrar deneyin.",
+                editorWelcome: "✅ Hoş geldiniz, Editör! Artık değişiklik yapabilirsiniz."
             }
         };
 
@@ -455,16 +571,81 @@
                 this.filePath = 'homework-data.json';
                 this.lastSha = null;
                 this.localOnly = (!this.repoOwner || !this.repoName);
+                
+                // Editor mode settings
+                this.isEditor = localStorage.getItem('editor_mode') === 'true';
+                this.editorPassword = 'homework2024'; // Change this to your desired password
+                
                 this.init();
             }
 
             init() {
                 this.setLanguage(this.currentLanguage);
+                this.updateEditorMode();
                 this.createDayCards();
                 this.updateWeekDisplay();
                 this.updateStats();
                 this.checkConfig();
                 this.loadFromGitHub();
+            }
+
+            updateEditorMode() {
+                const editorStatus = document.getElementById('editorStatus');
+                const editorToggle = document.getElementById('editorToggle');
+                const editorPasswordInput = document.getElementById('editorPassword');
+                const viewerNotice = document.getElementById('viewerNotice');
+                const lang = languages[this.currentLanguage];
+
+                if (this.isEditor) {
+                    editorStatus.textContent = lang.editorMode;
+                    editorStatus.className = 'editor-status editor';
+                    editorToggle.textContent = lang.editorLogout;
+                    editorPasswordInput.style.display = 'none';
+                    viewerNotice.style.display = 'none';
+                } else {
+                    editorStatus.textContent = lang.viewerMode;
+                    editorStatus.className = 'editor-status viewer';
+                    editorToggle.textContent = lang.editorLogin;
+                    viewerNotice.style.display = 'block';
+                    viewerNotice.innerHTML = `<strong>${lang.viewerNotice}</strong>`;
+                }
+            }
+
+            toggleEditorMode() {
+                const editorPasswordInput = document.getElementById('editorPassword');
+                const lang = languages[this.currentLanguage];
+
+                if (this.isEditor) {
+                    // Logout
+                    this.isEditor = false;
+                    localStorage.setItem('editor_mode', 'false');
+                    this.updateEditorMode();
+                    this.createDayCards();
+                    this.loadHomework();
+                } else {
+                    // Show password input if hidden
+                    if (editorPasswordInput.style.display === 'none' || !editorPasswordInput.style.display) {
+                        editorPasswordInput.style.display = 'inline-block';
+                        editorPasswordInput.focus();
+                        return;
+                    }
+
+                    // Check password
+                    const password = editorPasswordInput.value;
+                    if (password === this.editorPassword) {
+                        this.isEditor = true;
+                        localStorage.setItem('editor_mode', 'true');
+                        editorPasswordInput.value = '';
+                        this.updateEditorMode();
+                        this.createDayCards();
+                        this.loadHomework();
+                        alert(lang.editorWelcome);
+                    } else {
+                        alert(lang.wrongPassword);
+                        editorPasswordInput.value = '';
+                        editorPasswordInput.focus();
+                    }
+                }
             }
 
             checkConfig() {
@@ -476,7 +657,6 @@
                 repoNameInput.value = this.repoName;
                 
                 if (this.localOnly || !this.repoOwner || !this.repoName) {
-                    // Enable local-only mode (no GitHub)
                     configPanel.style.display = 'none';
                     this.updateSyncStatus('✅ Local mode', 'synced');
                 } else {
@@ -512,7 +692,6 @@
             }
 
             async loadFromGitHub() {
-                // In local-only mode, load from localStorage and return
                 if (this.localOnly || !this.repoOwner || !this.repoName) {
                     const localData = localStorage.getItem('homeworkData');
                     this.homeworkData = localData ? JSON.parse(localData) : {};
@@ -532,19 +711,20 @@
                         this.homeworkData = JSON.parse(content);
                         this.updateSyncStatus('✅ Synced', 'synced');
                     } else if (response.status === 404) {
-                        // File doesn't exist yet, create it
                         this.homeworkData = {};
-                        await this.saveToGitHub();
-                        this.updateSyncStatus('✅ Initialized', 'synced');
+                        if (this.isEditor) {
+                            await this.saveToGitHub();
+                            this.updateSyncStatus('✅ Initialized', 'synced');
+                        } else {
+                            this.updateSyncStatus('📖 View only', 'synced');
+                        }
                     } else {
                         throw new Error(`HTTP ${response.status}`);
                     }
                 } catch (error) {
                     console.error('GitHub load error:', error);
-                    // Switch to local-only mode on error
                     this.localOnly = true;
                     this.updateSyncStatus('✅ Local mode', 'synced');
-                    // Fall back to localStorage
                     const localData = localStorage.getItem('homeworkData');
                     if (localData) {
                         this.homeworkData = JSON.parse(localData);
@@ -556,7 +736,11 @@
             }
 
             async saveToGitHub() {
-                // In local-only mode, persist to localStorage
+                // Only editors can save
+                if (!this.isEditor) {
+                    return;
+                }
+
                 if (this.localOnly || !this.repoOwner || !this.repoName) {
                     localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
                     this.updateSyncStatus('✅ Saved locally', 'synced');
@@ -588,15 +772,12 @@
                         const data = await response.json();
                         this.lastSha = data.content.sha;
                         this.updateSyncStatus('✅ Saved', 'synced');
-                        
-                        // Also save to localStorage as backup
                         localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
                     } else {
                         throw new Error(`HTTP ${response.status}`);
                     }
                 } catch (error) {
                     console.error('GitHub save error:', error);
-                    // Switch to local-only mode and save locally
                     this.localOnly = true;
                     localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
                     this.updateSyncStatus('✅ Saved locally', 'synced');
@@ -620,6 +801,7 @@
 
             changeLanguage(lang) {
                 this.setLanguage(lang);
+                this.updateEditorMode();
                 this.createDayCards();
                 this.loadHomework();
             }
@@ -673,13 +855,17 @@
                 const daysGrid = document.getElementById('daysGrid');
                 daysGrid.innerHTML = '';
                 const dates = this.getWeekDates(this.currentWeekOffset);
+                const lang = languages[this.currentLanguage];
                 
                 this.days.forEach((day, index) => {
                     const dayCard = document.createElement('div');
                     dayCard.className = 'day-card';
-                    const translatedDay = languages[this.currentLanguage].days[day];
+                    const translatedDay = lang.days[day];
                     const date = dates[index];
                     const dateStr = `${date.getDate()}/${date.getMonth() + 1}`;
+                    
+                    // Hide add homework section for viewers
+                    const addHomeworkHidden = this.isEditor ? '' : 'hidden';
                     
                     dayCard.innerHTML = `
                         <div class="day-header">
@@ -688,13 +874,13 @@
                         </div>
                         <div class="day-content">
                             <div class="homework-list" id="homework-${day}">
-                                <div class="empty-state">${languages[this.currentLanguage].emptyState}</div>
+                                <div class="empty-state">${this.isEditor ? lang.emptyState : lang.emptyStateViewer}</div>
                             </div>
-                            <div class="add-homework">
-                                <input type="text" class="add-input" placeholder="${languages[this.currentLanguage].addPlaceholder}" 
+                            <div class="add-homework ${addHomeworkHidden}">
+                                <input type="text" class="add-input" placeholder="${lang.addPlaceholder}" 
                                        onkeypress="if(event.key==='Enter') homeworkManager.addHomework('${day}', this)">
                                 <button class="btn-add" onclick="homeworkManager.addHomework('${day}', this.previousElementSibling)">
-                                    ${languages[this.currentLanguage].addButton}
+                                    ${lang.addButton}
                                 </button>
                             </div>
                         </div>
@@ -704,6 +890,9 @@
             }
 
             async addHomework(day, inputElement) {
+                // Only editors can add homework
+                if (!this.isEditor) return;
+                
                 const text = inputElement.value.trim();
                 if (!text) return;
 
@@ -734,27 +923,39 @@
                 const container = document.getElementById(`homework-${day}`);
                 const weekKey = this.getWeekKey();
                 const homeworks = this.homeworkData[weekKey]?.[day] || [];
+                const lang = languages[this.currentLanguage];
 
                 if (homeworks.length === 0) {
-                    container.innerHTML = `<div class="empty-state">${languages[this.currentLanguage].emptyState}</div>`;
+                    container.innerHTML = `<div class="empty-state">${this.isEditor ? lang.emptyState : lang.emptyStateViewer}</div>`;
                     return;
                 }
 
-                const lang = languages[this.currentLanguage];
-                
-                container.innerHTML = homeworks.map(homework => `
-                    <div class="homework-item fade-in">
-                        <textarea class="homework-text" onblur="homeworkManager.updateHomeworkText('${day}', ${homework.id}, this.value)">${homework.text}</textarea>
-                        <div class="homework-actions">
-                            <button class="btn btn-delete" onclick="homeworkManager.deleteHomework('${day}', ${homework.id})">
-                                ${lang.deleteButton}
-                            </button>
+                if (this.isEditor) {
+                    // Editor view - with edit capabilities
+                    container.innerHTML = homeworks.map(homework => `
+                        <div class="homework-item fade-in">
+                            <textarea class="homework-text" onblur="homeworkManager.updateHomeworkText('${day}', ${homework.id}, this.value)">${homework.text}</textarea>
+                            <div class="homework-actions">
+                                <button class="btn btn-delete" onclick="homeworkManager.deleteHomework('${day}', ${homework.id})">
+                                    ${lang.deleteButton}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `).join('');
+                } else {
+                    // Viewer mode - read-only
+                    container.innerHTML = homeworks.map(homework => `
+                        <div class="homework-item fade-in">
+                            <div class="homework-display">${homework.text}</div>
+                        </div>
+                    `).join('');
+                }
             }
 
             async updateHomeworkText(day, id, newText) {
+                // Only editors can update homework
+                if (!this.isEditor) return;
+                
                 const weekKey = this.getWeekKey();
                 const homeworks = this.homeworkData[weekKey]?.[day];
                 if (homeworks) {
@@ -767,7 +968,11 @@
             }
 
             async deleteHomework(day, id) {
-                if (confirm(languages[this.currentLanguage].deleteConfirm)) {
+                // Only editors can delete homework
+                if (!this.isEditor) return;
+                
+                const lang = languages[this.currentLanguage];
+                if (confirm(lang.deleteConfirm)) {
                     const weekKey = this.getWeekKey();
                     const homeworks = this.homeworkData[weekKey]?.[day];
                     if (homeworks) {
@@ -807,6 +1012,13 @@
         let homeworkManager;
         document.addEventListener('DOMContentLoaded', () => {
             homeworkManager = new HomeworkManager();
+            
+            // Handle Enter key for password input
+            document.getElementById('editorPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    homeworkManager.toggleEditorMode();
+                }
+            });
         });
     </script>
 </body>
