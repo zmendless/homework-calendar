@@ -1,46 +1,50 @@
 async loadFromGitHub() {
-                if (this.localOnly || !this.repoOwner || !this.repoName || !this.githubToken) {
-                    const localData = localStorage.getItem('homeworkData');
-                    this.homeworkData = localData ? JSON.parse(localData) : {};
-                    if (this.isEditor && (!this.repoOwner || !this.repoName || !this.githubToken)) {
-                        this.updateSyncStatus('⚠️ Setup required', 'error');
-                    } else {
-                        this.updateSyncStatus('✅ Local mode', 'synced');
-                    }
-                    this.loadHomework();
-                    this.updateStats();
-                    return;
-                }
-                
-                try {
-                    const headers = {
-                        'Authorization': `token ${this.githubToken}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    };
-                    
-                    const response = await fetch(`https://api.github.com/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`, {
-                        headers
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        this.lastSha = data.sha;
-                        const content = atob(data.content);
-                        this.homeworkData = JSON.parse(content);
-                        this.updateSyncStatus('✅ Synced', 'synced');
-                    } else if (response.status === 404) {
-                        this.homeworkData = {};
-                        if (this.isEditor) {
-                            await this.saveToGitHub();
-                            this.updateSyncStatus('✅ Initialized', 'synced');
-                        } else {
-                            this.updateSyncStatus('📖 View only', 'synced');
-                        }
-                    } else {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                } catch (error) {
-                    console.error('GitHub<!DOCTYPE html>
+    if (this.localOnly || !this.repoOwner || !this.repoName || !this.githubToken) {
+        const localData = localStorage.getItem('homeworkData');
+        this.homeworkData = localData ? JSON.parse(localData) : {};
+        if (this.isEditor && (!this.repoOwner || !this.repoName || !this.githubToken)) {
+            this.updateSyncStatus('⚠️ Setup required', 'error');
+        } else {
+            this.updateSyncStatus('✅ Local mode', 'synced');
+        }
+        this.loadHomework();
+        this.updateStats();
+        return;
+    }
+    
+    try {
+        const headers = {
+            'Authorization': `token ${this.githubToken}`,
+            'Accept': 'application/vnd.github.v3+json'
+        };
+        
+        const response = await fetch(
+            `https://api.github.com/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`,
+            { headers }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            this.lastSha = data.sha;
+            const content = atob(data.content);
+            this.homeworkData = JSON.parse(content);
+            this.updateSyncStatus('✅ Synced', 'synced');
+        } else if (response.status === 404) {
+            this.homeworkData = {};
+            if (this.isEditor) {
+                await this.saveToGitHub();
+                this.updateSyncStatus('✅ Initialized', 'synced');
+            } else {
+                this.updateSyncStatus('📖 View only', 'synced');
+            }
+        } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+    } catch (error) {
+        console.error('GitHub load error:', error);
+        this.updateSyncStatus('❌ Failed to load', 'error');
+    }
+}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
