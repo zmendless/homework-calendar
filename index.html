@@ -344,33 +344,28 @@
     </div>
 </div>
 
-<!-- Firebase compat version -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+  import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-<script>
-    // Firebase config
-    const firebaseConfig = {
-        apiKey: "AIzaSyDs-4yX-jqxXgrVYL2lLcaY5K2GG_dkcmU",
-        authDomain: "homework-calendar-ofl.firebaseapp.com",
-        databaseURL: "https://homework-calendar-ofl-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "homework-calendar-ofl",
-        storageBucket: "homework-calendar-ofl.firebasestorage.app",
-        messagingSenderId: "78806400800",
-        appId: "1:78806400800:web:3b04881a8f24fac575e145",
-        measurementId: "G-BKQ7GM54ZZ"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyDs-4yX-jqxXgrVYL2lLcaY5K2GG_dkcmU",
+    authDomain: "homework-calendar-ofl.firebaseapp.com",
+    databaseURL: "https://homework-calendar-ofl-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "homework-calendar-ofl",
+    storageBucket: "homework-calendar-ofl.firebasestorage.app",
+    messagingSenderId: "78806400800",
+    appId: "1:78806400800:web:3b04881a8f24fac575e145",
+    measurementId: "G-BKQ7GM54ZZ"
+  };
 
-    // Initialize Firebase (compat)
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+  const app = initializeApp(firebaseConfig);
+  const database = getDatabase(app);
 
-    // Global variables
-    let currentWeekOffset = 0;
-    let isEditMode = false;
-    let currentEditDay = null;
-    const EDIT_PASSWORD = "class2024";
-
+  // Example: read/write
+  const testRef = ref(database, 'test');
+  push(testRef, { example: "hello" });
+    
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     // Get week dates
@@ -389,9 +384,6 @@
         }
         return weekDates;
     }
-</script>
-
-
         // Format date for display
         function formatDateRange(weekDates) {
             const options = { month: 'short', day: 'numeric' };
