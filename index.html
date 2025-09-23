@@ -1,55 +1,9 @@
-async loadFromGitHub() {
-    if (this.localOnly || !this.repoOwner || !this.repoName || !this.githubToken) {
-        const localData = localStorage.getItem('homeworkData');
-        this.homeworkData = localData ? JSON.parse(localData) : {};
-        if (this.isEditor && (!this.repoOwner || !this.repoName || !this.githubToken)) {
-            this.updateSyncStatus('⚠️ Setup required', 'error');
-        } else {
-            this.updateSyncStatus('✅ Local mode', 'synced');
-        }
-        this.loadHomework();
-        this.updateStats();
-        return;
-    }
-    
-    try {
-        const headers = {
-            'Authorization': `token ${this.githubToken}`,
-            'Accept': 'application/vnd.github.v3+json'
-        };
-        
-        const response = await fetch(
-            `https://api.github.com/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`,
-            { headers }
-        );
-        
-        if (response.ok) {
-            const data = await response.json();
-            this.lastSha = data.sha;
-            const content = atob(data.content);
-            this.homeworkData = JSON.parse(content);
-            this.updateSyncStatus('✅ Synced', 'synced');
-        } else if (response.status === 404) {
-            this.homeworkData = {};
-            if (this.isEditor) {
-                await this.saveToGitHub();
-                this.updateSyncStatus('✅ Initialized', 'synced');
-            } else {
-                this.updateSyncStatus('📖 View only', 'synced');
-            }
-        } else {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-    } catch (error) {
-        console.error('GitHub load error:', error);
-        this.updateSyncStatus('❌ Failed to load', 'error');
-    }
-}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collaborative Homework Manager</title>
+    <title>Homework Planner</title>
     <style>
         * {
             margin: 0;
@@ -69,1023 +23,706 @@ async loadFromGitHub() {
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
+            padding: 30px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
-            overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 30px;
             text-align: center;
-            position: relative;
+            margin-bottom: 30px;
         }
 
         .header h1 {
-            font-size: 2.5em;
-            font-weight: 700;
+            color: #333;
+            font-size: 2.5rem;
             margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1em;
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        .sync-status {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.2);
-            font-size: 0.9em;
+        .week-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .week-display {
+            font-size: 18px;
             font-weight: 600;
+            color: #333;
+            min-width: 200px;
+            text-align: center;
         }
 
-        .sync-status.syncing {
-            background: rgba(255,165,0,0.3);
-        }
-
-        .sync-status.synced {
-            background: rgba(0,255,0,0.3);
-        }
-
-        .sync-status.error {
-            background: rgba(255,0,0,0.3);
-        }
-
-        .editor-status {
-            position: absolute;
-            top: 20px;
-            right: 250px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.2);
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-
-        .editor-status.viewer {
-            background: rgba(255,255,0,0.3);
-        }
-
-        .editor-status.editor {
-            background: rgba(0,255,0,0.3);
-        }
-
-        .editor-login {
-            position: absolute;
-            top: 60px;
-            right: 20px;
+        .auth-section {
             display: flex;
             gap: 10px;
             align-items: center;
         }
 
-        .editor-login input {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.9);
-            color: #333;
-            width: 150px;
+        .config-section {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
         }
 
-        .editor-login button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.9);
+        .config-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .config-row input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .config-row input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .config-row label {
+            font-weight: 600;
             color: #333;
+            min-width: 120px;
+        }
+
+        .password-input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .auth-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
             cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .status {
+            margin-left: 10px;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
             font-weight: 600;
         }
 
-        .editor-login button:hover {
-            background: white;
+        .status.authenticated {
+            background: #d4edda;
+            color: #155724;
         }
 
-        .days-grid {
+        .status.unauthenticated {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .week-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
-            padding: 30px;
         }
 
         .day-card {
             background: white;
             border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
             transition: all 0.3s ease;
             border: 2px solid transparent;
-            overflow: hidden;
         }
 
         .day-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
-            border-color: #4facfe;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
         }
 
         .day-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            font-weight: 600;
-            font-size: 1.3em;
-            text-align: center;
-            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
         }
 
-        .day-content {
-            padding: 20px;
+        .day-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .day-date {
+            font-size: 14px;
+            color: #666;
+            background: #f8f9fa;
+            padding: 5px 12px;
+            border-radius: 20px;
         }
 
         .homework-list {
-            min-height: 200px;
-            margin-bottom: 20px;
+            min-height: 100px;
         }
 
         .homework-item {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 12px;
             border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 12px;
-            position: relative;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             transition: all 0.3s ease;
-            border-left: 4px solid #4facfe;
         }
 
         .homework-item:hover {
-            background: #e3f2fd;
             transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
         }
 
         .homework-text {
-            background: none;
-            border: none;
-            width: 100%;
-            font-size: 1em;
-            line-height: 1.5;
-            resize: vertical;
-            min-height: 40px;
-            font-family: inherit;
+            flex: 1;
+            font-size: 14px;
             color: #333;
         }
 
-        .homework-text:focus {
-            outline: none;
-            background: white;
-        }
-
-        .homework-text[readonly] {
-            cursor: default;
-            background: transparent;
-        }
-
-        .homework-display {
-            width: 100%;
-            font-size: 1em;
-            line-height: 1.5;
-            min-height: 40px;
-            font-family: inherit;
-            color: #333;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .homework-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .btn-delete {
-            background: #ff4757;
+        .delete-btn {
+            background: #dc3545;
             color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
         }
 
-        .btn-delete:hover {
-            background: #ff3838;
+        .delete-btn:hover {
+            background: #c82333;
             transform: scale(1.05);
         }
 
         .add-homework {
+            margin-top: 15px;
             display: flex;
             gap: 10px;
         }
 
-        .add-homework.hidden {
-            display: none;
-        }
-
         .add-input {
             flex: 1;
-            padding: 12px 16px;
-            border: 2px solid #e9ecef;
-            border-radius: 25px;
-            font-size: 1em;
-            transition: all 0.3s ease;
-            background: white;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
         }
 
         .add-input:focus {
             outline: none;
-            border-color: #4facfe;
-            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+            border-color: #667eea;
         }
 
-        .btn-add {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 25px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-
-        .btn-add:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
-        }
-
-        .stats {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            padding: 20px;
-            margin: 20px 30px;
-            border-radius: 15px;
-            text-align: center;
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .week-navigation {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 30px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            margin: 0 30px 20px 30px;
-            border-radius: 15px;
-        }
-
-        .btn-nav {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        .add-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 25px;
-            font-weight: 600;
+            padding: 10px 15px;
+            border-radius: 10px;
             cursor: pointer;
+            font-size: 14px;
             transition: all 0.3s ease;
         }
 
-        .btn-nav:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
         }
 
-        .current-week {
-            color: white;
-            font-weight: 600;
-            font-size: 1.1em;
+        .add-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
             text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 18px;
         }
 
-        .stat-item {
-            color: #333;
-        }
-
-        .stat-number {
-            font-size: 2em;
-            font-weight: 700;
-            display: block;
-            color: #667eea;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #6c757d;
-            font-style: italic;
-            padding: 30px;
-            opacity: 0.7;
-        }
-
-        .config-panel {
-            background: rgba(255,255,255,0.1);
+        .error {
+            background: #f8d7da;
+            color: #721c24;
             padding: 15px;
-            margin: 20px 30px;
-            border-radius: 15px;
-            color: white;
-        }
-
-        .config-input {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 20px;
-            margin-left: 10px;
-            background: rgba(255,255,255,0.9);
-            color: #333;
-        }
-
-        .viewer-notice {
-            background: rgba(255,255,0,0.2);
-            padding: 15px;
-            margin: 20px 30px;
-            border-radius: 15px;
-            color: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
             text-align: center;
-            border: 2px solid rgba(255,255,0,0.3);
+        }
+
+        .save-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            transform: translateY(-100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .save-indicator.show {
+            transform: translateY(0);
+            opacity: 1;
         }
 
         @media (max-width: 768px) {
-            .days-grid {
-                grid-template-columns: 1fr;
-                padding: 15px;
+            .container {
+                padding: 20px;
             }
-            
+
             .header h1 {
-                font-size: 2em;
+                font-size: 2rem;
             }
-            
-            .add-homework {
+
+            .controls {
                 flex-direction: column;
+                align-items: stretch;
             }
 
-            .week-navigation {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-
-            .current-week {
-                order: -1;
-            }
-
-            .editor-login {
-                position: static;
+            .week-nav {
                 justify-content: center;
-                margin-top: 15px;
             }
 
-            .editor-status {
-                position: static;
-                display: inline-block;
-                margin-top: 10px;
+            .config-row {
+                flex-direction: column;
+                align-items: stretch;
             }
-        }
 
-        .pulse {
-            animation: pulse 2s infinite;
-        }
+            .config-row label {
+                min-width: auto;
+                margin-bottom: 5px;
+            }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            .week-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div style="position: absolute; top: 20px; right: 20px;">
-                <select id="languageSelector" onchange="homeworkManager.changeLanguage(this.value)" style="padding: 8px 12px; border: none; border-radius: 20px; background: rgba(255,255,255,0.2); color: white; font-weight: 600; cursor: pointer;">
-                    <option value="en">🇺🇸 English</option>
-                    <option value="tr">🇹🇷 Türkçe</option>
-                </select>
-            </div>
-            <div id="syncStatus" class="sync-status">⚙️ Setting up...</div>
-            <div id="editorStatus" class="editor-status viewer">👁️ Viewer Mode</div>
-            <div class="editor-login">
-                <input type="password" id="editorPassword" placeholder="Editor password" style="display: none;">
-                <button id="editorToggle" onclick="homeworkManager.toggleEditorMode()">🔑 Editor Login</button>
-            </div>
-            <h1 id="headerTitle">📚 Homework Hub</h1>
-            <p id="headerSubtitle">Collaborative homework management for your class</p>
+            <h1>📚 Homework Planner</h1>
         </div>
 
-        <div class="viewer-notice" id="viewerNotice">
-            <strong>📖 You are in viewer mode.</strong> You can see all homework but cannot make changes. Contact an editor if you need to add or modify homework.
-        </div>
-
-        <div class="config-panel" id="configPanel" style="display: none;">
-            <strong>GitHub Configuration Required:</strong><br>
-            Repository Owner: <input type="text" id="repoOwner" class="config-input" placeholder="username" value="">
-            Repository Name: <input type="text" id="repoName" class="config-input" placeholder="repository-name" value=""><br>
-            GitHub Token: <input type="password" id="githubToken" class="config-input" placeholder="ghp_xxxxxxxxxxxx" value="" style="width: 200px;">
-            <button onclick="homeworkManager.saveConfig()" style="padding: 8px 16px; border: none; border-radius: 20px; background: #4facfe; color: white; cursor: pointer; margin-left: 10px;">Save</button>
-            <br><small style="opacity: 0.8; margin-top: 5px; display: block;">
-                You need a GitHub Personal Access Token to save changes.<br>
-                <a href="https://github.com/settings/tokens" target="_blank" style="color: white; text-decoration: underline;">Create one here</a> with 'repo' permissions.
-            </small>
-        </div>
-
-        <div class="week-navigation">
-            <button class="btn-nav" id="prevWeek" onclick="homeworkManager.changeWeek(-1)">← <span id="prevWeekLabel">Previous Week</span></button>
-            <div class="current-week">
-                <span id="currentWeekLabel">Current Week</span>: <span id="weekDisplay"></span>
+        <div class="config-section">
+            <h3 style="margin-bottom: 15px; color: #333;">GitHub Configuration</h3>
+            <div class="config-row">
+                <label>GitHub Username:</label>
+                <input type="text" id="githubUsername" placeholder="your-username">
             </div>
-            <button class="btn-nav" id="nextWeek" onclick="homeworkManager.changeWeek(1)"><span id="nextWeekLabel">Next Week</span> →</button>
-        </div>
-
-        <div class="stats" id="stats">
-            <div class="stat-item">
-                <span class="stat-number" id="totalHomework">0</span>
-                <span id="totalTasksLabel">Total Tasks</span>
+            <div class="config-row">
+                <label>Repository Name:</label>
+                <input type="text" id="repoName" placeholder="homework-planner">
             </div>
-            <div class="stat-item">
-                <span class="stat-number" id="completedHomework">0</span>
-                <span id="completedLabel">Completed</span>
+            <div class="config-row">
+                <label>GitHub Token:</label>
+                <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxx">
             </div>
-            <div class="stat-item">
-                <span class="stat-number" id="pendingHomework">0</span>
-                <span id="pendingLabel">Pending</span>
+            <div class="config-row">
+                <label>Edit Password:</label>
+                <input type="password" id="editPassword" placeholder="Set password for editing">
+            </div>
+            <div class="config-row">
+                <button onclick="saveConfig()" class="auth-btn">Save Configuration</button>
+                <button onclick="loadData()" class="auth-btn">Load Data</button>
             </div>
         </div>
 
-        <div class="days-grid" id="daysGrid">
-            <!-- Days will be dynamically generated -->
+        <div class="controls">
+            <div class="week-nav">
+                <button class="nav-btn" onclick="previousWeek()">← Previous Week</button>
+                <div class="week-display" id="weekDisplay">Loading...</div>
+                <button class="nav-btn" onclick="nextWeek()">Next Week →</button>
+            </div>
+            <div class="auth-section">
+                <input type="password" class="password-input" id="passwordInput" placeholder="Enter password to edit">
+                <button class="auth-btn" onclick="authenticate()">Authenticate</button>
+                <span class="status unauthenticated" id="authStatus">Read-only</span>
+            </div>
         </div>
+
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        <div id="loadingMessage" class="loading" style="display: none;">Loading homework data...</div>
+        <div id="weekGrid" class="week-grid"></div>
     </div>
 
+    <div class="save-indicator" id="saveIndicator">Saved to GitHub!</div>
+
     <script>
-        // Language pack system
-        const languages = {
-            en: {
-                headerTitle: "📚 Homework Hub",
-                headerSubtitle: "Collaborative homework management for your class",
-                totalTasksLabel: "Total Tasks",
-                completedLabel: "N/A",
-                pendingLabel: "Active",
-                currentWeekLabel: "Current Week",
-                prevWeekLabel: "Previous Week",
-                nextWeekLabel: "Next Week",
-                days: {
-                    Monday: "Monday",
-                    Tuesday: "Tuesday", 
-                    Wednesday: "Wednesday",
-                    Thursday: "Thursday",
-                    Friday: "Friday",
-                    Saturday: "Saturday",
-                    Sunday: "Sunday"
-                },
-                emptyState: "No homework yet. Add some below!",
-                emptyStateViewer: "No homework assigned for this day.",
-                addPlaceholder: "Add new homework...",
-                addButton: "➕ Add",
-                deleteButton: "🗑️ Delete",
-                deleteConfirm: "Are you sure you want to delete this homework?",
-                editorLogin: "🔑 Editor Login",
-                editorLogout: "🚪 Logout",
-                viewerMode: "👁️ Viewer Mode",
-                editorMode: "✏️ Editor Mode",
-                viewerNotice: "📖 You are in viewer mode. You can see all homework but cannot make changes. Contact an editor if you need to add or modify homework.",
-                wrongPassword: "❌ Wrong password! Please try again.",
-                editorWelcome: "✅ Welcome, Editor! You can now make changes."
-            },
-            tr: {
-                headerTitle: "📚 Ödev Merkezi",
-                headerSubtitle: "Sınıfınız için işbirlikçi ödev yönetimi",
-                totalTasksLabel: "Toplam Görev",
-                completedLabel: "Kullanılmıyor",
-                pendingLabel: "Aktif",
-                currentWeekLabel: "Bu Hafta",
-                prevWeekLabel: "Önceki Hafta",
-                nextWeekLabel: "Sonraki Hafta",
-                days: {
-                    Monday: "Pazartesi",
-                    Tuesday: "Salı",
-                    Wednesday: "Çarşamba", 
-                    Thursday: "Perşembe",
-                    Friday: "Cuma",
-                    Saturday: "Cumartesi",
-                    Sunday: "Pazar"
-                },
-                emptyState: "Henüz ödev yok. Aşağıdan ekleyin!",
-                emptyStateViewer: "Bu gün için henüz ödev atanmamış.",
-                addPlaceholder: "Yeni ödev ekle...",
-                addButton: "➕ Ekle",
-                deleteButton: "🗑️ Sil", 
-                deleteConfirm: "Bu ödevi silmek istediğinizden emin misiniz?",
-                editorLogin: "🔑 Editor Girişi",
-                editorLogout: "🚪 Çıkış",
-                viewerMode: "👁️ İzleyici Modu",
-                editorMode: "✏️ Editör Modu",
-                viewerNotice: "📖 İzleyici modundasınız. Tüm ödevleri görebilirsiniz ancak değişiklik yapamazsınız. Ödev eklemek veya değiştirmek için bir editörle iletişime geçin.",
-                wrongPassword: "❌ Yanlış şifre! Lütfen tekrar deneyin.",
-                editorWelcome: "✅ Hoş geldiniz, Editör! Artık değişiklik yapabilirsiniz."
-            }
+        // Global variables
+        let currentWeekStart = new Date();
+        let isAuthenticated = false;
+        let homeworkData = {};
+        let config = {
+            githubUsername: '',
+            repoName: '',
+            githubToken: '',
+            editPassword: ''
         };
 
-        class HomeworkManager {
-            constructor() {
-                this.currentLanguage = localStorage.getItem('homework_language') || 'en';
-                this.currentWeekOffset = 0;
-                this.days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                this.homeworkData = {};
-                this.repoOwner = localStorage.getItem('repo_owner') || '';
-                this.repoName = localStorage.getItem('repo_name') || '';
-                this.githubToken = localStorage.getItem('github_token') || '';
-                this.filePath = 'homework-data.json';
-                this.lastSha = null;
-                this.localOnly = (!this.repoOwner || !this.repoName || !this.githubToken);
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            setCurrentWeek();
+            updateWeekDisplay();
+            renderWeek();
+        });
+
+        function loadConfig() {
+            const savedConfig = localStorage.getItem('homeworkPlannerConfig');
+            if (savedConfig) {
+                config = JSON.parse(savedConfig);
+                document.getElementById('githubUsername').value = config.githubUsername || '';
+                document.getElementById('repoName').value = config.repoName || '';
+                document.getElementById('githubToken').value = config.githubToken || '';
+                document.getElementById('editPassword').value = config.editPassword || '';
+            }
+        }
+
+        function saveConfig() {
+            config.githubUsername = document.getElementById('githubUsername').value;
+            config.repoName = document.getElementById('repoName').value;
+            config.githubToken = document.getElementById('githubToken').value;
+            config.editPassword = document.getElementById('editPassword').value;
+            
+            localStorage.setItem('homeworkPlannerConfig', JSON.stringify(config));
+            showError('Configuration saved! Now click "Load Data" to fetch homework data.', false);
+        }
+
+        function setCurrentWeek() {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            currentWeekStart = new Date(now);
+            currentWeekStart.setDate(now.getDate() + diff);
+            currentWeekStart.setHours(0, 0, 0, 0);
+        }
+
+        function updateWeekDisplay() {
+            const endDate = new Date(currentWeekStart);
+            endDate.setDate(currentWeekStart.getDate() + 6);
+            
+            const options = { month: 'short', day: 'numeric' };
+            const startStr = currentWeekStart.toLocaleDateString('en-US', options);
+            const endStr = endDate.toLocaleDateString('en-US', options);
+            const year = currentWeekStart.getFullYear();
+            
+            document.getElementById('weekDisplay').textContent = `${startStr} - ${endStr}, ${year}`;
+        }
+
+        function previousWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            updateWeekDisplay();
+            renderWeek();
+        }
+
+        function nextWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            updateWeekDisplay();
+            renderWeek();
+        }
+
+        function authenticate() {
+            const password = document.getElementById('passwordInput').value;
+            if (password === config.editPassword && config.editPassword !== '') {
+                isAuthenticated = true;
+                document.getElementById('authStatus').textContent = 'Authenticated';
+                document.getElementById('authStatus').className = 'status authenticated';
+                renderWeek(); // Re-render to show edit controls
+            } else {
+                showError('Incorrect password');
+                document.getElementById('authStatus').textContent = 'Read-only';
+                document.getElementById('authStatus').className = 'status unauthenticated';
+            }
+        }
+
+        function getDateKey(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function renderWeek() {
+            const weekGrid = document.getElementById('weekGrid');
+            weekGrid.innerHTML = '';
+
+            const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(currentWeekStart.getDate() + i);
+                const dateKey = getDateKey(date);
                 
-                // Editor mode settings
-                this.isEditor = localStorage.getItem('editor_mode') === 'true';
-                this.editorPassword = 'homework2024'; // Change this to your desired password
+                const dayCard = document.createElement('div');
+                dayCard.className = 'day-card';
                 
-                this.init();
+                const homework = homeworkData[dateKey] || [];
+                
+                dayCard.innerHTML = `
+                    <div class="day-header">
+                        <div class="day-name">${dayNames[i]}</div>
+                        <div class="day-date">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                    </div>
+                    <div class="homework-list" id="homework-${dateKey}">
+                        ${renderHomeworkList(homework, dateKey)}
+                    </div>
+                    ${isAuthenticated ? `
+                        <div class="add-homework">
+                            <input type="text" class="add-input" placeholder="Add new homework..." 
+                                   onkeypress="handleAddKeypress(event, '${dateKey}')">
+                            <button class="add-btn" onclick="addHomework('${dateKey}')">Add</button>
+                        </div>
+                    ` : ''}
+                `;
+                
+                weekGrid.appendChild(dayCard);
+            }
+        }
+
+        function renderHomeworkList(homework, dateKey) {
+            if (!homework || homework.length === 0) {
+                return '<div style="color: #999; font-style: italic; text-align: center; padding: 20px;">No homework for this day</div>';
+            }
+            
+            return homework.map((item, index) => `
+                <div class="homework-item">
+                    <div class="homework-text">${escapeHtml(item)}</div>
+                    ${isAuthenticated ? `<button class="delete-btn" onclick="deleteHomework('${dateKey}', ${index})">Delete</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function handleAddKeypress(event, dateKey) {
+            if (event.key === 'Enter') {
+                addHomework(dateKey);
+            }
+        }
+
+        function addHomework(dateKey) {
+            const input = event.target.previousElementSibling;
+            const homework = input.value.trim();
+            
+            if (!homework) return;
+            
+            if (!homeworkData[dateKey]) {
+                homeworkData[dateKey] = [];
+            }
+            
+            homeworkData[dateKey].push(homework);
+            input.value = '';
+            
+            // Update the specific day's homework list
+            document.getElementById(`homework-${dateKey}`).innerHTML = renderHomeworkList(homeworkData[dateKey], dateKey);
+            
+            saveData();
+        }
+
+        function deleteHomework(dateKey, index) {
+            if (!homeworkData[dateKey]) return;
+            
+            homeworkData[dateKey].splice(index, 1);
+            
+            if (homeworkData[dateKey].length === 0) {
+                delete homeworkData[dateKey];
+            }
+            
+            // Update the specific day's homework list
+            document.getElementById(`homework-${dateKey}`).innerHTML = renderHomeworkList(homeworkData[dateKey] || [], dateKey);
+            
+            saveData();
+        }
+
+        async function loadData() {
+            if (!config.githubUsername || !config.repoName || !config.githubToken) {
+                showError('Please configure GitHub settings first');
+                return;
             }
 
-            init() {
-                this.setLanguage(this.currentLanguage);
-                this.updateEditorMode();
-                this.createDayCards();
-                this.updateWeekDisplay();
-                this.updateStats();
-                this.checkConfig();
-                this.loadFromGitHub();
-            }
-
-            updateEditorMode() {
-                const editorStatus = document.getElementById('editorStatus');
-                const editorToggle = document.getElementById('editorToggle');
-                const editorPasswordInput = document.getElementById('editorPassword');
-                const viewerNotice = document.getElementById('viewerNotice');
-                const lang = languages[this.currentLanguage];
-
-                if (this.isEditor) {
-                    editorStatus.textContent = lang.editorMode;
-                    editorStatus.className = 'editor-status editor';
-                    editorToggle.textContent = lang.editorLogout;
-                    editorPasswordInput.style.display = 'none';
-                    viewerNotice.style.display = 'none';
-                } else {
-                    editorStatus.textContent = lang.viewerMode;
-                    editorStatus.className = 'editor-status viewer';
-                    editorToggle.textContent = lang.editorLogin;
-                    viewerNotice.style.display = 'block';
-                    viewerNotice.innerHTML = `<strong>${lang.viewerNotice}</strong>`;
-                }
-            }
-
-            toggleEditorMode() {
-                const editorPasswordInput = document.getElementById('editorPassword');
-                const lang = languages[this.currentLanguage];
-
-                if (this.isEditor) {
-                    // Logout
-                    this.isEditor = false;
-                    localStorage.setItem('editor_mode', 'false');
-                    this.updateEditorMode();
-                    this.createDayCards();
-                    this.loadHomework();
-                } else {
-                    // Show password input if hidden
-                    if (editorPasswordInput.style.display === 'none' || !editorPasswordInput.style.display) {
-                        editorPasswordInput.style.display = 'inline-block';
-                        editorPasswordInput.focus();
-                        return;
-                    }
-
-                    // Check password
-                    const password = editorPasswordInput.value;
-                    if (password === this.editorPassword) {
-                        this.isEditor = true;
-                        localStorage.setItem('editor_mode', 'true');
-                        editorPasswordInput.value = '';
-                        this.updateEditorMode();
-                        this.createDayCards();
-                        this.loadHomework();
-                        alert(lang.editorWelcome);
-                    } else {
-                        alert(lang.wrongPassword);
-                        editorPasswordInput.value = '';
-                        editorPasswordInput.focus();
-                    }
-                }
-            }
-
-            checkConfig() {
-                const configPanel = document.getElementById('configPanel');
-                const repoOwnerInput = document.getElementById('repoOwner');
-                const repoNameInput = document.getElementById('repoName');
-                const githubTokenInput = document.getElementById('githubToken');
-                
-                repoOwnerInput.value = this.repoOwner;
-                repoNameInput.value = this.repoName;
-                githubTokenInput.value = this.githubToken;
-                
-                if (this.localOnly || !this.repoOwner || !this.repoName || !this.githubToken) {
-                    if (this.isEditor) {
-                        configPanel.style.display = 'block';
-                        this.updateSyncStatus('⚠️ Config needed', 'error');
-                    } else {
-                        configPanel.style.display = 'none';
-                        this.updateSyncStatus('✅ Local mode', 'synced');
-                    }
-                } else {
-                    configPanel.style.display = 'none';
-                    this.updateSyncStatus('🔄 Syncing...', 'syncing');
-                }
-            }
-
-            saveConfig() {
-                const repoOwner = document.getElementById('repoOwner').value.trim();
-                const repoName = document.getElementById('repoName').value.trim();
-                const githubToken = document.getElementById('githubToken').value.trim();
-                
-                if (!repoOwner || !repoName || !githubToken) {
-                    alert('Please enter repository owner, name, and GitHub token');
-                    return;
-                }
-                
-                this.repoOwner = repoOwner;
-                this.repoName = repoName;
-                this.githubToken = githubToken;
-                this.localOnly = false;
-                
-                localStorage.setItem('repo_owner', repoOwner);
-                localStorage.setItem('repo_name', repoName);
-                localStorage.setItem('github_token', githubToken);
-                
-                document.getElementById('configPanel').style.display = 'none';
-                this.updateSyncStatus('🔄 Loading...', 'syncing');
-                this.loadFromGitHub();
-            }
-
-            updateSyncStatus(text, type) {
-                const status = document.getElementById('syncStatus');
-                status.textContent = text;
-                status.className = `sync-status ${type}`;
-            }
-
-            async loadFromGitHub() {
-                if (this.localOnly || !this.repoOwner || !this.repoName) {
-                    const localData = localStorage.getItem('homeworkData');
-                    this.homeworkData = localData ? JSON.parse(localData) : {};
-                    this.updateSyncStatus('✅ Local mode', 'synced');
-                    this.loadHomework();
-                    this.updateStats();
-                    return;
-                }
-                
-                try {
-                    const response = await fetch(`https://api.github.com/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`);
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        this.lastSha = data.sha;
-                        const content = atob(data.content);
-                        this.homeworkData = JSON.parse(content);
-                        this.updateSyncStatus('✅ Synced', 'synced');
-                    } else if (response.status === 404) {
-                        this.homeworkData = {};
-                        if (this.isEditor) {
-                            await this.saveToGitHub();
-                            this.updateSyncStatus('✅ Initialized', 'synced');
-                        } else {
-                            this.updateSyncStatus('📖 View only', 'synced');
-                        }
-                    } else {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                } catch (error) {
-                    console.error('GitHub load error:', error);
-                    if (error.message.includes('401') || error.message.includes('403')) {
-                        this.updateSyncStatus('❌ Auth failed', 'error');
-                        if (this.isEditor) {
-                            alert('GitHub authentication failed. Please check your token.');
-                            document.getElementById('configPanel').style.display = 'block';
-                        }
-                    } else {
-                        this.updateSyncStatus('❌ Connection failed', 'error');
-                    }
-                    // Fall back to localStorage
-                    const localData = localStorage.getItem('homeworkData');
-                    if (localData) {
-                        this.homeworkData = JSON.parse(localData);
-                    }
-                }
-                
-                this.loadHomework();
-                this.updateStats();
-            }
-
-            async saveToGitHub() {
-                // Only editors can save
-                if (!this.isEditor) {
-                    return;
-                }
-
-                if (this.localOnly || !this.repoOwner || !this.repoName || !this.githubToken) {
-                    localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
-                    this.updateSyncStatus('⚠️ Saved locally only', 'error');
-                    return;
-                }
-                
-                try {
-                    this.updateSyncStatus('🔄 Saving...', 'syncing');
-                    
-                    const content = btoa(JSON.stringify(this.homeworkData, null, 2));
-                    const body = {
-                        message: `Update homework data - ${new Date().toISOString()}`,
-                        content: content
-                    };
-                    
-                    if (this.lastSha) {
-                        body.sha = this.lastSha;
-                    }
-                    
-                    const headers = {
-                        'Authorization': `token ${this.githubToken}`,
-                        'Content-Type': 'application/json',
+            showLoading(true);
+            
+            try {
+                const response = await fetch(`https://api.github.com/repos/${config.githubUsername}/${config.repoName}/contents/homework-data.json`, {
+                    headers: {
+                        'Authorization': `token ${config.githubToken}`,
                         'Accept': 'application/vnd.github.v3+json'
-                    };
-                    
-                    const response = await fetch(`https://api.github.com/repos/${this.repoOwner}/${this.repoName}/contents/${this.filePath}`, {
-                        method: 'PUT',
-                        headers,
-                        body: JSON.stringify(body)
+                    }
+                });
+
+                if (response.status === 404) {
+                    // File doesn't exist yet, create it
+                    homeworkData = {};
+                    await saveData();
+                } else if (response.ok) {
+                    const data = await response.json();
+                    const content = JSON.parse(atob(data.content));
+                    homeworkData = content.homeworkData || {};
+                } else {
+                    throw new Error(`Failed to load data: ${response.statusText}`);
+                }
+                
+                renderWeek();
+                showError('Data loaded successfully!', false);
+            } catch (error) {
+                showError(`Error loading data: ${error.message}`);
+                console.error('Load error:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function saveData() {
+            if (!config.githubUsername || !config.repoName || !config.githubToken) {
+                showError('GitHub configuration missing');
+                return;
+            }
+
+            try {
+                // First, get the current file to get its SHA
+                let sha = null;
+                try {
+                    const response = await fetch(`https://api.github.com/repos/${config.githubUsername}/${config.repoName}/contents/homework-data.json`, {
+                        headers: {
+                            'Authorization': `token ${config.githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
                     });
                     
                     if (response.ok) {
                         const data = await response.json();
-                        this.lastSha = data.content.sha;
-                        this.updateSyncStatus('✅ Saved to GitHub', 'synced');
-                        localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
-                    } else {
-                        const errorData = await response.json();
-                        throw new Error(`HTTP ${response.status}: ${errorData.message || response.statusText}`);
+                        sha = data.sha;
                     }
                 } catch (error) {
-                    console.error('GitHub save error:', error);
-                    if (error.message.includes('401') || error.message.includes('403')) {
-                        this.updateSyncStatus('❌ Auth failed', 'error');
-                        alert('GitHub authentication failed. Please check your token.');
-                        document.getElementById('configPanel').style.display = 'block';
-                    } else {
-                        this.updateSyncStatus('❌ Save failed', 'error');
-                        alert('Failed to save to GitHub: ' + error.message);
-                    }
-                    // Always save locally as backup
-                    localStorage.setItem('homeworkData', JSON.stringify(this.homeworkData));
+                    console.log('File does not exist yet, will create new');
                 }
-            }
 
-            setLanguage(lang) {
-                this.currentLanguage = lang;
-                localStorage.setItem('homework_language', lang);
-                
-                document.getElementById('languageSelector').value = lang;
-                document.getElementById('headerTitle').textContent = languages[lang].headerTitle;
-                document.getElementById('headerSubtitle').textContent = languages[lang].headerSubtitle;
-                document.getElementById('totalTasksLabel').textContent = languages[lang].totalTasksLabel;
-                document.getElementById('completedLabel').textContent = languages[lang].completedLabel;
-                document.getElementById('pendingLabel').textContent = languages[lang].pendingLabel;
-                document.getElementById('currentWeekLabel').textContent = languages[lang].currentWeekLabel;
-                document.getElementById('prevWeekLabel').textContent = languages[lang].prevWeekLabel;
-                document.getElementById('nextWeekLabel').textContent = languages[lang].nextWeekLabel;
-            }
-
-            changeLanguage(lang) {
-                this.setLanguage(lang);
-                this.updateEditorMode();
-                this.createDayCards();
-                this.loadHomework();
-            }
-
-            getWeekDates(weekOffset = 0) {
-                const today = new Date();
-                const currentDay = today.getDay();
-                const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-                
-                const monday = new Date(today);
-                monday.setDate(today.getDate() + mondayOffset + (weekOffset * 7));
-                
-                const dates = [];
-                for (let i = 0; i < 7; i++) {
-                    const date = new Date(monday);
-                    date.setDate(monday.getDate() + i);
-                    dates.push(date);
-                }
-                
-                return dates;
-            }
-
-            updateWeekDisplay() {
-                const dates = this.getWeekDates(this.currentWeekOffset);
-                const startDate = dates[0];
-                const endDate = dates[6];
-                
-                const formatDate = (date) => {
-                    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-                };
-                
-                document.getElementById('weekDisplay').textContent = 
-                    `${formatDate(startDate)} - ${formatDate(endDate)}`;
-            }
-
-            changeWeek(direction) {
-                this.currentWeekOffset += direction;
-                this.updateWeekDisplay();
-                this.createDayCards();
-                this.loadHomework();
-                this.updateStats();
-            }
-
-            getWeekKey() {
-                const dates = this.getWeekDates(this.currentWeekOffset);
-                const monday = dates[0];
-                return `${monday.getFullYear()}-W${Math.ceil(monday.getDate() / 7)}-${monday.getMonth()}`;
-            }
-
-            createDayCards() {
-                const daysGrid = document.getElementById('daysGrid');
-                daysGrid.innerHTML = '';
-                const dates = this.getWeekDates(this.currentWeekOffset);
-                const lang = languages[this.currentLanguage];
-                
-                this.days.forEach((day, index) => {
-                    const dayCard = document.createElement('div');
-                    dayCard.className = 'day-card';
-                    const translatedDay = lang.days[day];
-                    const date = dates[index];
-                    const dateStr = `${date.getDate()}/${date.getMonth() + 1}`;
-                    
-                    // Hide add homework section for viewers
-                    const addHomeworkHidden = this.isEditor ? '' : 'hidden';
-                    
-                    dayCard.innerHTML = `
-                        <div class="day-header">
-                            <h3>${translatedDay}</h3>
-                            <div style="font-size: 0.9em; opacity: 0.8;">${dateStr}</div>
-                        </div>
-                        <div class="day-content">
-                            <div class="homework-list" id="homework-${day}">
-                                <div class="empty-state">${this.isEditor ? lang.emptyState : lang.emptyStateViewer}</div>
-                            </div>
-                            <div class="add-homework ${addHomeworkHidden}">
-                                <input type="text" class="add-input" placeholder="${lang.addPlaceholder}" 
-                                       onkeypress="if(event.key==='Enter') homeworkManager.addHomework('${day}', this)">
-                                <button class="btn-add" onclick="homeworkManager.addHomework('${day}', this.previousElementSibling)">
-                                    ${lang.addButton}
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    daysGrid.appendChild(dayCard);
-                });
-            }
-
-            async addHomework(day, inputElement) {
-                // Only editors can add homework
-                if (!this.isEditor) return;
-                
-                const text = inputElement.value.trim();
-                if (!text) return;
-
-                const homework = {
-                    id: Date.now(),
-                    text: text,
-                    createdAt: new Date().toISOString()
+                const content = {
+                    homeworkData: homeworkData,
+                    lastUpdated: new Date().toISOString()
                 };
 
-                const weekKey = this.getWeekKey();
-                if (!this.homeworkData[weekKey]) {
-                    this.homeworkData[weekKey] = {};
-                }
-                if (!this.homeworkData[weekKey][day]) {
-                    this.homeworkData[weekKey][day] = [];
-                }
-
-                this.homeworkData[weekKey][day].push(homework);
-                await this.saveToGitHub();
-                this.renderHomework(day);
-                this.updateStats();
-                
-                inputElement.value = '';
-                inputElement.focus();
-            }
-
-            renderHomework(day) {
-                const container = document.getElementById(`homework-${day}`);
-                const weekKey = this.getWeekKey();
-                const homeworks = this.homeworkData[weekKey]?.[day] || [];
-                const lang = languages[this.currentLanguage];
-
-                if (homeworks.length === 0) {
-                    container.innerHTML = `<div class="empty-state">${this.isEditor ? lang.emptyState : lang.emptyStateViewer}</div>`;
-                    return;
-                }
-
-                if (this.isEditor) {
-                    // Editor view - with edit capabilities
-                    container.innerHTML = homeworks.map(homework => `
-                        <div class="homework-item fade-in">
-                            <textarea class="homework-text" 
-
-            async updateHomeworkText(day, id, newText) {
-                // Only editors can update homework
-                if (!this.isEditor) return;
-                
-                const weekKey = this.getWeekKey();
-                const homeworks = this.homeworkData[weekKey]?.[day];
-                if (homeworks) {
-                    const homework = homeworks.find(h => h.id == id);
-                    if (homework) {
-                        homework.text = newText.trim();
-                        await this.saveToGitHub();
-                    }
-                }
-            }
-
-            async deleteHomework(day, id) {
-                // Only editors can delete homework
-                if (!this.isEditor) return;
-                
-                const lang = languages[this.currentLanguage];
-                if (confirm(lang.deleteConfirm)) {
-                    const weekKey = this.getWeekKey();
-                    const homeworks = this.homeworkData[weekKey]?.[day];
-                    if (homeworks) {
-                        this.homeworkData[weekKey][day] = homeworks.filter(h => h.id !== id);
-                        await this.saveToGitHub();
-                        this.renderHomework(day);
-                        this.updateStats();
-                    }
-                }
-            }
-
-            loadHomework() {
-                this.days.forEach(day => {
-                    this.renderHomework(day);
-                });
-            }
-
-            updateStats() {
-                let total = 0;
-
-                const weekKey = this.getWeekKey();
-                const currentWeekData = this.homeworkData[weekKey] || {};
-                
-                Object.values(currentWeekData).forEach(dayHomework => {
-                    if (Array.isArray(dayHomework)) {
-                        total += dayHomework.length;
-                    }
+                const response = await fetch(`https://api.github.com/repos/${config.githubUsername}/${config.repoName}/contents/homework-data.json`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${config.githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'Update homework data',
+                        content: btoa(JSON.stringify(content, null, 2)),
+                        ...(sha && { sha })
+                    })
                 });
 
-                document.getElementById('totalHomework').textContent = total;
-                document.getElementById('completedHomework').textContent = '-';
-                document.getElementById('pendingHomework').textContent = total;
+                if (!response.ok) {
+                    throw new Error(`Failed to save: ${response.statusText}`);
+                }
+
+                showSaveIndicator();
+            } catch (error) {
+                showError(`Error saving data: ${error.message}`);
+                console.error('Save error:', error);
             }
         }
 
-        // Initialize the homework manager
-        let homeworkManager;
-        document.addEventListener('DOMContentLoaded', () => {
-            homeworkManager = new HomeworkManager();
+        function showSaveIndicator() {
+            const indicator = document.getElementById('saveIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        function showLoading(show) {
+            const loading = document.getElementById('loadingMessage');
+            loading.style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message, isError = true) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            errorDiv.style.background = isError ? '#f8d7da' : '#d4edda';
+            errorDiv.style.color = isError ? '#721c24' : '#155724';
             
-            // Handle Enter key for password input
-            document.getElementById('editorPassword').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    homeworkManager.toggleEditorMode();
-                }
-            });
-        });
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
     </script>
 </body>
 </html>
