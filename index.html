@@ -344,62 +344,51 @@
         </div>
     </div>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<!-- Firebase compat -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-    <script>
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+<script>
+    // Firebase config
+    const firebaseConfig = {
+        apiKey: "AIzaSyDs-4yX-jqxXgrVYL2lLcaY5K2GG_dkcmU",
+        authDomain: "homework-calendar-ofl.firebaseapp.com",
+        databaseURL: "https://homework-calendar-ofl-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "homework-calendar-ofl",
+        storageBucket: "homework-calendar-ofl.firebasestorage.app",
+        messagingSenderId: "78806400800",
+        appId: "1:78806400800:web:3b04881a8f24fac575e145",
+        measurementId: "G-BKQ7GM54ZZ"
+    };
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDs-4yX-jqxXgrVYL2lLcaY5K2GG_dkcmU",
-  authDomain: "homework-calendar-ofl.firebaseapp.com",
-  databaseURL: "https://homework-calendar-ofl-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "homework-calendar-ofl",
-  storageBucket: "homework-calendar-ofl.firebasestorage.app",
-  messagingSenderId: "78806400800",
-  appId: "1:78806400800:web:3b04881a8f24fac575e145",
-  measurementId: "G-BKQ7GM54ZZ"
-};
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+    // Global variables
+    let currentWeekOffset = 0;
+    let isEditMode = false;
+    let currentEditDay = null;
+    const EDIT_PASSWORD = "class2024"; // Change this to your desired password
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-        // Global variables
-        let currentWeekOffset = 0;
-        let isEditMode = false;
-        let currentEditDay = null;
-        const EDIT_PASSWORD = "class2024"; // Change this to your desired password
-
-        const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-        // Get week dates
-        function getWeekDates(weekOffset = 0) {
-            const today = new Date();
-            const currentDay = today.getDay();
-            const diff = today.getDate() - currentDay + (currentDay === 0 ? -6 : 1); // Get Monday
-            const monday = new Date(today.setDate(diff));
-            monday.setDate(monday.getDate() + (weekOffset * 7));
-            
-            const weekDates = [];
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(monday);
-                date.setDate(monday.getDate() + i);
-                weekDates.push(date);
-            }
-            return weekDates;
+    // Get week dates
+    function getWeekDates(weekOffset = 0) {
+        const today = new Date();
+        const currentDay = today.getDay();
+        const diff = today.getDate() - currentDay + (currentDay === 0 ? -6 : 1); // Get Monday
+        const monday = new Date(today.setDate(diff));
+        monday.setDate(monday.getDate() + (weekOffset * 7));
+        
+        const weekDates = [];
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
+            weekDates.push(date);
         }
+        return weekDates;
+    }
 
         // Format date for display
         function formatDateRange(weekDates) {
