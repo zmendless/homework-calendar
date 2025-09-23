@@ -449,7 +449,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+  import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDs-4yX-jqxXgrVYL2lLcaY5K2GG_dkcmU",
@@ -545,7 +545,24 @@
             });
         }
 
-        // Load homework from Firebase - UPDATED VERSION with completion status
+        // Get local completion status
+        function getLocalCompletionStatus(homeworkId) {
+            const completedHomework = JSON.parse(localStorage.getItem('completedHomework') || '{}');
+            return completedHomework[homeworkId] || false;
+        }
+
+        // Set local completion status
+        function setLocalCompletionStatus(homeworkId, completed) {
+            const completedHomework = JSON.parse(localStorage.getItem('completedHomework') || '{}');
+            if (completed) {
+                completedHomework[homeworkId] = true;
+            } else {
+                delete completedHomework[homeworkId];
+            }
+            localStorage.setItem('completedHomework', JSON.stringify(completedHomework));
+        }
+
+        // Load homework from Firebase - UPDATED VERSION with local completion status
         function loadHomework(dateKey) {
             const homeworkRef = ref(database, `homework/${dateKey}`);
             onValue(homeworkRef, (snapshot) => {
@@ -557,7 +574,7 @@
                 
                 if (data && Object.keys(data).length > 0) {
                     Object.entries(data).forEach(([id, homework]) => {
-                        const isCompleted = homework.completed || false;
+                        const isCompleted = getLocalCompletionStatus(id);
                         const li = document.createElement('li');
                         li.className = `homework-item ${isCompleted ? 'completed' : ''}`;
                         li.innerHTML = `
@@ -565,7 +582,7 @@
                                 <strong>${homework.subject}:</strong> ${homework.task}
                             </div>
                             <div class="homework-buttons">
-                                <button class="tick-btn ${isCompleted ? 'completed' : ''}" onclick="toggleHomeworkCompletion('${dateKey}', '${id}', ${!isCompleted})">
+                                <button class="tick-btn ${isCompleted ? 'completed' : ''}" onclick="toggleHomeworkCompletion('${id}', ${!isCompleted})">
                                     ${isCompleted ? '↶' : '✓'}
                                 </button>
                                 ${isEditMode ? `<button class="delete-btn" onclick="deleteHomework('${dateKey}', '${id}')">✕</button>` : ''}
@@ -579,10 +596,11 @@
             });
         }
 
-        // Toggle homework completion status
-        window.toggleHomeworkCompletion = function(dateKey, homeworkId, completed) {
-            const homeworkRef = ref(database, `homework/${dateKey}/${homeworkId}`);
-            update(homeworkRef, { completed: completed });
+        // Toggle homework completion status (local only)
+        window.toggleHomeworkCompletion = function(homeworkId, completed) {
+            setLocalCompletionStatus(homeworkId, completed);
+            // Re-render the current week to update the UI
+            renderWeek();
         }
 
         // Change week
@@ -644,7 +662,6 @@
                 push(homeworkRef, {
                     subject: subject,
                     task: task,
-                    completed: false,
                     timestamp: Date.now()
                 });
                 closeHomeworkModal();
