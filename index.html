@@ -89,10 +89,7 @@
         }
 
         .config-section {
-            background: rgba(102, 126, 234, 0.1);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
+            display: none;
         }
 
         .config-row {
@@ -374,29 +371,7 @@
             <h1>📚 Homework Planner</h1>
         </div>
 
-        <div class="config-section">
-            <h3 style="margin-bottom: 15px; color: #333;">GitHub Configuration</h3>
-            <div class="config-row">
-                <label>GitHub Username:</label>
-                <input type="text" id="githubUsername" placeholder="your-username">
-            </div>
-            <div class="config-row">
-                <label>Repository Name:</label>
-                <input type="text" id="repoName" placeholder="homework-planner">
-            </div>
-            <div class="config-row">
-                <label>GitHub Token:</label>
-                <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxx">
-            </div>
-            <div class="config-row">
-                <label>Edit Password:</label>
-                <input type="password" id="editPassword" placeholder="Set password for editing">
-            </div>
-            <div class="config-row">
-                <button onclick="saveConfig()" class="auth-btn">Save Configuration</button>
-                <button onclick="loadData()" class="auth-btn">Load Data</button>
-            </div>
-        </div>
+
 
         <div class="controls">
             <div class="week-nav">
@@ -424,40 +399,24 @@
         let isAuthenticated = false;
         let homeworkData = {};
         let config = {
-            githubUsername: '',
-            repoName: '',
-            githubToken: '',
-            editPassword: ''
+            githubUsername: 'YOUR_USERNAME', // Replace with your GitHub username
+            repoName: 'homework-planner', // Replace with your repository name
+            githubToken: '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',
+            editPassword: 'homework123' // Replace with your desired password
         };
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
-            loadConfig();
             setCurrentWeek();
             updateWeekDisplay();
-            renderWeek();
+            loadData(); // Automatically load data on startup
         });
 
         function loadConfig() {
-            const savedConfig = localStorage.getItem('homeworkPlannerConfig');
-            if (savedConfig) {
-                config = JSON.parse(savedConfig);
-                document.getElementById('githubUsername').value = config.githubUsername || '';
-                document.getElementById('repoName').value = config.repoName || '';
-                document.getElementById('githubToken').value = config.githubToken || '';
-                document.getElementById('editPassword').value = config.editPassword || '';
-            }
+            // Configuration is now hardcoded, no need to load from localStorage
         }
 
-        function saveConfig() {
-            config.githubUsername = document.getElementById('githubUsername').value;
-            config.repoName = document.getElementById('repoName').value;
-            config.githubToken = document.getElementById('githubToken').value;
-            config.editPassword = document.getElementById('editPassword').value;
-            
-            localStorage.setItem('homeworkPlannerConfig', JSON.stringify(config));
-            showError('Configuration saved! Now click "Load Data" to fetch homework data.', false);
-        }
+
 
         function setCurrentWeek() {
             const now = new Date();
