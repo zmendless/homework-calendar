@@ -1,8 +1,4 @@
-// Initialize
-        renderWeek();
-</script>
-</body>
-</html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -124,25 +120,10 @@
             justify-content: space-between;
             align-items: center;
             transition: background 0.2s;
-            gap: 10px;
-        }
-
-        .homework-item.completed {
-            background: #d4edda;
-            opacity: 0.7;
-        }
-
-        .homework-item.completed .homework-text {
-            text-decoration: line-through;
-            color: #6c757d;
         }
 
         .day-card.today .homework-item {
             background: rgba(255,255,255,0.7);
-        }
-
-        .day-card.today .homework-item.completed {
-            background: rgba(212, 237, 218, 0.8);
         }
 
         .homework-item:hover {
@@ -154,39 +135,23 @@
             color: #495057;
         }
 
-        .homework-controls {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
-
-        .complete-btn {
-            background: #28a745;
+        .delete-btn {
+            background: #ff6b6b;
             color: white;
             border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
+            border-radius: 5px;
+            padding: 5px 10px;
             cursor: pointer;
-            font-size: 0.8rem;
             opacity: 0;
             transition: opacity 0.2s;
         }
 
-        .complete-btn.completed {
-            background: #6c757d;
+        .homework-item:hover .delete-btn {
             opacity: 1;
         }
 
-        .homework-item:hover .complete-btn {
-            opacity: 1;
-        }
-
-        .complete-btn:hover {
-            background: #218838;
-        }
-
-        .complete-btn.completed:hover {
-            background: #5a6268;
+        .delete-btn:hover {
+            background: #ee5a6f;
         }
 
         .add-homework {
@@ -218,33 +183,6 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-        }
-
-        .view-controls {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .view-btn {
-            background: white;
-            color: #6a11cb;
-            border: none;
-            border-radius: 25px;
-            padding: 12px 25px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            transition: all 0.3s;
-        }
-
-        .view-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 30px rgba(0,0,0,0.3);
         }
 
         .edit-btn, .lock-btn {
@@ -339,54 +277,6 @@
             transform: translateY(-2px);
         }
 
-        .delete-btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .homework-item:hover .delete-btn {
-            opacity: 1;
-        }
-
-        .delete-btn:hover {
-            background: #ee5a6f;
-        }
-
-        .homework-list-modal {
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        .homework-list-modal .homework-group {
-            margin-bottom: 20px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-        }
-
-        .homework-list-modal .group-header {
-            font-weight: 600;
-            color: #6a11cb;
-            margin-bottom: 10px;
-            font-size: 1.1rem;
-        }
-
-        .homework-list-modal .homework-item {
-            margin-bottom: 8px;
-            padding: 8px;
-            font-size: 0.9rem;
-        }
-
-        .homework-list-modal .homework-text {
-            flex: 1;
-        }
-
         .no-homework {
             color: #adb5bd;
             font-style: italic;
@@ -406,11 +296,6 @@
                 bottom: 20px;
                 right: 20px;
             }
-
-            .view-controls {
-                bottom: 20px;
-                left: 20px;
-            }
         }
     </style>
 </head>
@@ -427,10 +312,6 @@
 
         <div class="days-grid" id="daysGrid">
             <!-- Days will be generated here -->
-        </div>
-
-        <div class="view-controls">
-            <button class="view-btn" onclick="showAllHomework()">📋 Tüm Ödevler</button>
         </div>
 
         <div class="edit-controls">
@@ -464,19 +345,6 @@
     </div>
 </div>
 
-<!-- All Homework Modal -->
-<div class="modal" id="allHomeworkModal">
-    <div class="modal-content" style="max-width: 600px;">
-        <h2 class="modal-title">Tüm Ödevler</h2>
-        <div class="homework-list-modal" id="allHomeworkList">
-            Yükleniyor...
-        </div>
-        <div class="modal-buttons">
-            <button class="cancel-btn" onclick="closeAllHomeworkModal()">Kapat</button>
-        </div>
-    </div>
-</div>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
   import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
@@ -500,114 +368,8 @@
   let isEditMode = false;
   let currentEditDay = null;
   const EDIT_PASSWORD = "class2024";
-  
-  // Local storage for completion status
-  let completedHomework = JSON.parse(localStorage.getItem('completedHomework') || '{}');
 
   const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
-
-  // Define all window functions first
-  window.changeWeek = function(direction) {
-      currentWeekOffset += direction;
-      renderWeek();
-  }
-
-  window.toggleEditMode = function() {
-      document.getElementById('passwordModal').classList.add('active');
-  }
-
-  window.closePasswordModal = function() {
-      document.getElementById('passwordModal').classList.remove('active');
-      document.getElementById('passwordInput').value = '';
-  }
-
-  window.checkPassword = function() {
-      const input = document.getElementById('passwordInput').value;
-      if (input === EDIT_PASSWORD) {
-          isEditMode = true;
-          document.getElementById('editBtn').style.display = 'none';
-          document.getElementById('lockBtn').style.display = 'block';
-          closePasswordModal();
-          renderWeek();
-      } else {
-          alert('Yanlış şifre!');
-          document.getElementById('passwordInput').value = '';
-      }
-  }
-
-  window.lockEditMode = function() {
-      isEditMode = false;
-      document.getElementById('editBtn').style.display = 'block';
-      document.getElementById('lockBtn').style.display = 'none';
-      renderWeek();
-  }
-
-  window.openHomeworkModal = function(dateKey) {
-      currentEditDay = dateKey;
-      document.getElementById('homeworkModal').classList.add('active');
-  }
-
-  window.closeHomeworkModal = function() {
-      document.getElementById('homeworkModal').classList.remove('active');
-      document.getElementById('subjectInput').value = '';
-      document.getElementById('homeworkInput').value = '';
-      currentEditDay = null;
-  }
-
-  window.saveHomework = function() {
-      const subject = document.getElementById('subjectInput').value.trim();
-      const task = document.getElementById('homeworkInput').value.trim();
-      
-      if (subject && task && currentEditDay) {
-          const homeworkRef = ref(database, `homework/${currentEditDay}`);
-          push(homeworkRef, {
-              subject: subject,
-              task: task,
-              timestamp: Date.now()
-          });
-          closeHomeworkModal();
-      } else {
-          alert('Lütfen her iki alanı da doldurun!');
-      }
-  }
-
-  window.deleteHomework = function(dateKey, homeworkId) {
-      if (confirm('Bu ödevi silmek istediğinizden emin misiniz?')) {
-          // Also remove from completion tracking
-          const homeworkKey = `${dateKey}-${homeworkId}`;
-          delete completedHomework[homeworkKey];
-          localStorage.setItem('completedHomework', JSON.stringify(completedHomework));
-          
-          const homeworkRef = ref(database, `homework/${dateKey}/${homeworkId}`);
-          remove(homeworkRef);
-      }
-  }
-
-  window.toggleComplete = function(homeworkKey, button) {
-      const isCompleted = completedHomework[homeworkKey] || false;
-      completedHomework[homeworkKey] = !isCompleted;
-      localStorage.setItem('completedHomework', JSON.stringify(completedHomework));
-      
-      const homeworkItem = button.closest('.homework-item');
-      if (!isCompleted) {
-          homeworkItem.classList.add('completed');
-          button.classList.add('completed');
-          button.textContent = '↶';
-      } else {
-          homeworkItem.classList.remove('completed');
-          button.classList.remove('completed');
-          button.textContent = '✓';
-      }
-  }
-
-  window.showAllHomework = function() {
-      document.getElementById('allHomeworkModal').classList.add('active');
-      loadAllHomework();
-  }
-
-  window.closeAllHomeworkModal = function() {
-      document.getElementById('allHomeworkModal').classList.remove('active');
-  }
 
     // Get week dates
     function getWeekDates(weekOffset = 0) {
@@ -693,83 +455,19 @@
                 
                 if (data && Object.keys(data).length > 0) {
                     Object.entries(data).forEach(([id, homework]) => {
-                        const homeworkKey = `${dateKey}-${id}`;
-                        const isCompleted = completedHomework[homeworkKey] || false;
-                        
                         const li = document.createElement('li');
-                        li.className = `homework-item ${isCompleted ? 'completed' : ''}`;
+                        li.className = 'homework-item';
                         li.innerHTML = `
                             <div class="homework-text">
                                 <strong>${homework.subject}:</strong> ${homework.task}
                             </div>
-                            <div class="homework-controls">
-                                <button class="complete-btn ${isCompleted ? 'completed' : ''}" 
-                                        onclick="toggleComplete('${homeworkKey}', this)">
-                                    ${isCompleted ? '↶' : '✓'}
-                                </button>
-                                ${isEditMode ? `<button class="delete-btn" onclick="deleteHomework('${dateKey}', '${id}')">✕</button>` : ''}
-                            </div>
+                            ${isEditMode ? `<button class="delete-btn" onclick="deleteHomework('${dateKey}', '${id}')">✕</button>` : ''}
                         `;
                         homeworkList.appendChild(li);
                     });
                 } else {
                     homeworkList.innerHTML = '<li class="no-homework">Ödev yok</li>';
                 }
-            });
-        }
-
-        // Load all homework for the modal
-        function loadAllHomework() {
-            const allHomeworkList = document.getElementById('allHomeworkList');
-            allHomeworkList.innerHTML = 'Yükleniyor...';
-            
-            const homeworkRef = ref(database, 'homework');
-            onValue(homeworkRef, (snapshot) => {
-                const allData = snapshot.val();
-                allHomeworkList.innerHTML = '';
-                
-                if (!allData || Object.keys(allData).length === 0) {
-                    allHomeworkList.innerHTML = '<div style="text-align: center; color: #adb5bd; padding: 20px;">Hiç ödev bulunamadı</div>';
-                    return;
-                }
-
-                // Sort by date
-                const sortedDates = Object.keys(allData).sort();
-                const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-                const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-
-                sortedDates.forEach(dateKey => {
-                    const homework = allData[dateKey];
-                    const date = new Date(dateKey);
-                    const dayName = dayNames[date.getDay()];
-                    const formattedDate = `${dayName}, ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-                    
-                    const groupDiv = document.createElement('div');
-                    groupDiv.className = 'homework-group';
-                    groupDiv.innerHTML = `<div class="group-header">${formattedDate}</div>`;
-                    
-                    Object.entries(homework).forEach(([id, hw]) => {
-                        const homeworkKey = `${dateKey}-${id}`;
-                        const isCompleted = completedHomework[homeworkKey] || false;
-                        
-                        const homeworkDiv = document.createElement('div');
-                        homeworkDiv.className = `homework-item ${isCompleted ? 'completed' : ''}`;
-                        homeworkDiv.innerHTML = `
-                            <div class="homework-text">
-                                <strong>${hw.subject}:</strong> ${hw.task}
-                            </div>
-                            <div class="homework-controls">
-                                <button class="complete-btn ${isCompleted ? 'completed' : ''}" 
-                                        onclick="toggleComplete('${homeworkKey}', this)">
-                                    ${isCompleted ? '↶' : '✓'}
-                                </button>
-                            </div>
-                        `;
-                        groupDiv.appendChild(homeworkDiv);
-                    });
-                    
-                    allHomeworkList.appendChild(groupDiv);
-                });
             });
         }
 
@@ -842,11 +540,6 @@
 
         window.deleteHomework = function(dateKey, homeworkId) {
             if (confirm('Bu ödevi silmek istediğinizden emin misiniz?')) {
-                // Also remove from completion tracking
-                const homeworkKey = `${dateKey}-${homeworkId}`;
-                delete completedHomework[homeworkKey];
-                localStorage.setItem('completedHomework', JSON.stringify(completedHomework));
-                
                 const homeworkRef = ref(database, `homework/${dateKey}/${homeworkId}`);
                 remove(homeworkRef);
             }
@@ -857,7 +550,6 @@
             if (e.key === 'Escape') {
                 closePasswordModal();
                 closeHomeworkModal();
-                closeAllHomeworkModal();
             } else if (e.key === 'Enter') {
                 if (document.getElementById('passwordModal').classList.contains('active')) {
                     checkPassword();
@@ -866,3 +558,9 @@
                 }
             }
         });
+
+        // Initialize
+        renderWeek();
+    </script>
+</body>
+</html>
