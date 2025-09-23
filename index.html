@@ -362,11 +362,13 @@
   const app = initializeApp(firebaseConfig);
   const database = getDatabase(app);
 
-  // Example: read/write
-  const testRef = ref(database, 'test');
-  push(testRef, { example: "hello" });
-    
-    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  // ← Add these lines
+  let currentWeekOffset = 0;
+  let isEditMode = false;
+  let currentEditDay = null;
+  const EDIT_PASSWORD = "class2024";
+
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     // Get week dates
     function getWeekDates(weekOffset = 0) {
