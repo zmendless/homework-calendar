@@ -738,7 +738,7 @@
             });
         }
 
-        // Load homework from Firebase
+        // Load homework from Firebase - FIXED VERSION
         function loadHomework(dateKey) {
             const homeworkRef = ref(database, `homework/${dateKey}`);
             onValue(homeworkRef, (snapshot) => {
@@ -747,7 +747,6 @@
                 
                 homeworkList.innerHTML = '';
                 const data = snapshot.val();
-                allHomeworksData[dateKey] = data || null;
                 
                 if (data && Object.keys(data).length > 0) {
                     Object.entries(data).forEach(([id, homework]) => {
@@ -770,18 +769,6 @@
                 } else {
                     homeworkList.innerHTML = '<li class="no-homework">Ödev yok</li>';
                 }
-                
-                // Update all view if it's active
-                if (currentView === 'all') {
-                    setTimeout(() => loadAllHomeworks(), 100);
-                }
-            }, (error) => {
-                console.log("Error loading homework:", error);
-                const homeworkList = document.getElementById(`homework-${dateKey}`);
-                if (homeworkList) {
-                    homeworkList.innerHTML = '<li class="no-homework">Ödev yok</li>';
-                }
-                allHomeworksData[dateKey] = null;
             });
         }
 
@@ -791,93 +778,99 @@
             update(homeworkRef, { completed: completed });
         }
 
-        // Load all homeworks
+        // Load all homeworks - simplified approach
         function loadAllHomeworks() {
             const container = document.getElementById('allHomeworksContainer');
             const statsContainer = document.getElementById('statsContainer');
             
-            container.innerHTML = '';
-            
-            let totalHomeworks = 0;
-            let completedHomeworks = 0;
-            let pendingHomeworks = 0;
-            
-            // Get all dates from current week and next 4 weeks
-            const allDates = [];
-            for (let weekOffset = 0; weekOffset < 5; weekOffset++) {
-                const weekDates = getWeekDates(weekOffset);
-                allDates.push(...weekDates);
-            }
-            
-            allDates.forEach(date => {
-                const dateKey = getDateKey(date);
-                const data = allHomeworksData[dateKey];
+            // Load fresh data from Firebase for all homeworks view
+            const homeworkRef = ref(database, 'homework');
+            onValue(homeworkRef, (snapshot) => {
+                const allData = snapshot.val() || {};
                 
-                if (data && Object.keys(data).length > 0) {
-                    const daySection = document.createElement('div');
-                    daySection.className = `day-section ${isToday(date) ? 'today' : ''}`;
+                container.innerHTML = '';
+                
+                let totalHomeworks = 0;
+                let completedHomeworks = 0;
+                let pendingHomeworks = 0;
+                
+                // Get all dates from current week and next 4 weeks
+                const allDates = [];
+                for (let weekOffset = 0; weekOffset < 5; weekOffset++) {
+                    const weekDates = getWeekDates(weekOffset);
+                    allDates.push(...weekDates);
+                }
+                
+                allDates.forEach(date => {
+                    const dateKey = getDateKey(date);
+                    const data = allData[dateKey];
                     
-                    const dayName = daysOfWeek[date.getDay() === 0 ? 6 : date.getDay() - 1];
-                    const monthName = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'][date.getMonth()];
-                    
-                    daySection.innerHTML = `
-                        <div class="day-section-header">
-                            ${dayName}, ${date.getDate()} ${monthName} ${date.getFullYear()}
-                            ${isToday(date) ? '(Bugün)' : ''}
-                        </div>
-                    `;
-                    
-                    const homeworksContainer = document.createElement('div');
-                    
-                    Object.entries(data).forEach(([id, homework]) => {
-                        totalHomeworks++;
-                        if (homework.completed) {
-                            completedHomeworks++;
-                        } else {
-                            pendingHomeworks++;
-                        }
+                    if (data && Object.keys(data).length > 0) {
+                        const daySection = document.createElement('div');
+                        daySection.className = `day-section ${isToday(date) ? 'today' : ''}`;
                         
-                        const homeworkEntry = document.createElement('div');
-                        homeworkEntry.className = `homework-entry ${homework.completed ? 'completed' : 'pending'}`;
-                        homeworkEntry.innerHTML = `
-                            <div class="homework-entry-text">
-                                <strong>${homework.subject}:</strong> ${homework.task}
-                            </div>
-                            <div class="homework-controls">
-                                <button class="tick-btn ${homework.completed ? 'completed' : ''}" 
-                                        onclick="toggleHomeworkCompletion('${dateKey}', '${id}', ${!homework.completed})">
-                                    ${homework.completed ? '↶' : '✓'}
-                                </button>
-                                ${isEditMode ? `<button class="delete-btn" onclick="deleteHomework('${dateKey}', '${id}')">✕</button>` : ''}
+                        const dayName = daysOfWeek[date.getDay() === 0 ? 6 : date.getDay() - 1];
+                        const monthName = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'][date.getMonth()];
+                        
+                        daySection.innerHTML = `
+                            <div class="day-section-header">
+                                ${dayName}, ${date.getDate()} ${monthName} ${date.getFullYear()}
+                                ${isToday(date) ? '(Bugün)' : ''}
                             </div>
                         `;
-                        homeworksContainer.appendChild(homeworkEntry);
-                    });
-                    
-                    daySection.appendChild(homeworksContainer);
-                    container.appendChild(daySection);
+                        
+                        const homeworksContainer = document.createElement('div');
+                        
+                        Object.entries(data).forEach(([id, homework]) => {
+                            totalHomeworks++;
+                            if (homework.completed) {
+                                completedHomeworks++;
+                            } else {
+                                pendingHomeworks++;
+                            }
+                            
+                            const homeworkEntry = document.createElement('div');
+                            homeworkEntry.className = `homework-entry ${homework.completed ? 'completed' : 'pending'}`;
+                            homeworkEntry.innerHTML = `
+                                <div class="homework-entry-text">
+                                    <strong>${homework.subject}:</strong> ${homework.task}
+                                </div>
+                                <div class="homework-controls">
+                                    <button class="tick-btn ${homework.completed ? 'completed' : ''}" 
+                                            onclick="toggleHomeworkCompletion('${dateKey}', '${id}', ${!homework.completed})">
+                                        ${homework.completed ? '↶' : '✓'}
+                                    </button>
+                                    ${isEditMode ? `<button class="delete-btn" onclick="deleteHomework('${dateKey}', '${id}')">✕</button>` : ''}
+                                </div>
+                            `;
+                            homeworksContainer.appendChild(homeworkEntry);
+                        });
+                        
+                        daySection.appendChild(homeworksContainer);
+                        container.appendChild(daySection);
+                    }
+                });
+                
+                // Update stats
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${totalHomeworks}</div>
+                        <div class="stat-label">Toplam Ödev</div>
+                    </div>
+                    <div class="stat-card completed">
+                        <div class="stat-number">${completedHomeworks}</div>
+                        <div class="stat-label">Tamamlanan</div>
+                    </div>
+                    <div class="stat-card pending">
+                        <div class="stat-number">${pendingHomeworks}</div>
+                        <div class="stat-label">Bekleyen</div>
+                    </div>
+                `;
+                
+                if (totalHomeworks === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: #669bbc; font-size: 1.2rem; margin-top: 50px;">Henüz ödev yok</div>';
                 }
             });
-            
-            // Update stats
-            statsContainer.innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-number">${totalHomeworks}</div>
-                    <div class="stat-label">Toplam Ödev</div>
-                </div>
-                <div class="stat-card completed">
-                    <div class="stat-number">${completedHomeworks}</div>
-                    <div class="stat-label">Tamamlanan</div>
-                </div>
-                <div class="stat-card pending">
-                    <div class="stat-number">${pendingHomeworks}</div>
-                    <div class="stat-label">Bekleyen</div>
-                </div>
-            `;
-            
-            if (totalHomeworks === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #669bbc; font-size: 1.2rem; margin-top: 50px;">Henüz ödev yok</div>';
-            }
         }
 
         // Change week
@@ -978,26 +971,4 @@
         });
 
         // Initialize
-        setTimeout(() => {
-            renderWeek();
-        }, 1000);
-        
-        // Load initial data for all homeworks view - simplified approach
-        setTimeout(() => {
-            const homeworkRef = ref(database, 'homework');
-            onValue(homeworkRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    allHomeworksData = data;
-                } else {
-                    allHomeworksData = {};
-                }
-                
-                if (currentView === 'all') {
-                    loadAllHomeworks();
-                }
-            }, (error) => {
-                console.log("Error loading all homework data:", error);
-                allHomeworksData = {};
-            });
-        }, 500);
+        renderWeek();
