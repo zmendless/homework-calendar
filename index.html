@@ -747,7 +747,7 @@
                 
                 homeworkList.innerHTML = '';
                 const data = snapshot.val();
-                allHomeworksData[dateKey] = data;
+                allHomeworksData[dateKey] = data || null;
                 
                 if (data && Object.keys(data).length > 0) {
                     Object.entries(data).forEach(([id, homework]) => {
@@ -773,8 +773,15 @@
                 
                 // Update all view if it's active
                 if (currentView === 'all') {
-                    loadAllHomeworks();
+                    setTimeout(() => loadAllHomeworks(), 100);
                 }
+            }, (error) => {
+                console.log("Error loading homework:", error);
+                const homeworkList = document.getElementById(`homework-${dateKey}`);
+                if (homeworkList) {
+                    homeworkList.innerHTML = '<li class="no-homework">Ödev yok</li>';
+                }
+                allHomeworksData[dateKey] = null;
             });
         }
 
@@ -971,15 +978,26 @@
         });
 
         // Initialize
-        renderWeek();
+        setTimeout(() => {
+            renderWeek();
+        }, 1000);
         
-        // Load initial data for all homeworks view
-        const homeworkRef = ref(database, 'homework');
-        onValue(homeworkRef, (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                Object.keys(data).forEach(dateKey => {
-                    allHomeworksData[dateKey] = data[dateKey];
-                });
-            }
-        });
+        // Load initial data for all homeworks view - simplified approach
+        setTimeout(() => {
+            const homeworkRef = ref(database, 'homework');
+            onValue(homeworkRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    allHomeworksData = data;
+                } else {
+                    allHomeworksData = {};
+                }
+                
+                if (currentView === 'all') {
+                    loadAllHomeworks();
+                }
+            }, (error) => {
+                console.log("Error loading all homework data:", error);
+                allHomeworksData = {};
+            });
+        }, 500);
