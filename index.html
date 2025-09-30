@@ -805,25 +805,29 @@
             renderGraph(homeworkCounts);
         }
 
-        // Render graph
-        function renderGraph(counts) {
-const minBarHeight = 20; // pixels
+function renderGraph(counts) {
+    const graphBars = document.getElementById('graphBars');
+    graphBars.innerHTML = '';
 
-counts.forEach((count, index) => {
-    const height = (count / maxCount) * 100; // percentage
-    const barHeightPx = Math.max((height / 100) * 300, minBarHeight); // ensure minimum
-    const barWrapper = document.createElement('div');
-    barWrapper.className = 'bar-wrapper';
-    barWrapper.innerHTML = `
-        <div class="bar" style="height: ${barHeightPx}px">
-            <div class="bar-value">${count}</div>
-        </div>
-        <div class="bar-label">${daysOfWeek[index].substring(0, 3)}</div>
-    `;
-    graphBars.appendChild(barWrapper);
-});
+    const maxCount = Math.max(...counts, 1); // prevent division by zero
+    const minBarHeight = 20; // pixels
 
-        }
+    counts.forEach((count, index) => {
+        const heightPercent = (count / maxCount) * 100;
+        const barHeightPx = Math.max((heightPercent / 100) * 300, minBarHeight);
+
+        const barWrapper = document.createElement('div');
+        barWrapper.className = 'bar-wrapper';
+        barWrapper.innerHTML = `
+            <div class="bar" style="height: ${barHeightPx}px">
+                <div class="bar-value">${count}</div>
+            </div>
+            <div class="bar-label">${daysOfWeek[index].substring(0, 3)}</div>
+        `;
+        graphBars.appendChild(barWrapper);
+    });
+}
+
 
         // Load upcoming homeworks
         function loadUpcomingHomeworks() {
