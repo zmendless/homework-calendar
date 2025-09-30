@@ -809,7 +809,7 @@ function renderGraph(counts) {
     const graphBars = document.getElementById('graphBars');
     graphBars.innerHTML = '';
 
-    const maxCount = Math.max(...counts, 1); // prevent division by zero
+    const maxCount = Math.max(...counts, 1) / 2; // prevent division by zero
     const minBarHeight = 20; // pixels
 
     counts.forEach((count, index) => {
