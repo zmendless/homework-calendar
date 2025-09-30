@@ -814,27 +814,29 @@ function renderGraph(counts) {
     const maxCount = Math.max(...counts, 1); // avoid division by zero
     const minBarHeight = 20; // pixels
 
-    counts.forEach((count, index) => {
-        const barWrapper = document.createElement('div');
-        barWrapper.className = 'bar-wrapper';
-        barWrapper.innerHTML = `
-            <div class="bar">
-                <div class="bar-value">${count}</div>
-            </div>
-            <div class="bar-label">${daysOfWeek[index].substring(0, 3)}</div>
-        `;
-        graphBars.appendChild(barWrapper);
+counts.forEach((count, index) => {
+    const barWrapper = document.createElement('div');
+    barWrapper.className = 'bar-wrapper';
+    barWrapper.innerHTML = `
+        <div class="bar">
+            <div class="bar-value">${count}</div>
+        </div>
+        <div class="bar-label">${daysOfWeek[index].substring(0, 3)}</div>
+    `;
+    graphBars.appendChild(barWrapper);
 
-        // Animate the bar after appending
-        const bar = barWrapper.querySelector('.bar');
-        const heightPercentage = (count / maxCount) * 100;
-        const barHeightPx = Math.max((heightPercentage / 100) * 300, minBarHeight);
+    const bar = barWrapper.querySelector('.bar');
+    const heightPercentage = (count / maxCount) * 100;
+    let barHeightPx = Math.max((heightPercentage / 100) * 300, minBarHeight);
 
-        // Delay to ensure transition triggers
-        setTimeout(() => {
-            bar.style.height = barHeightPx + 'px';
-        }, 50);
-    });
+    // Make it 2x smaller
+    barHeightPx /= 2;
+
+    setTimeout(() => {
+        bar.style.height = barHeightPx + 'px';
+    }, 50);
+});
+
 }
 
 
