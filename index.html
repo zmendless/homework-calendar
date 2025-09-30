@@ -809,12 +809,14 @@ function renderGraph(counts) {
     const graphBars = document.getElementById('graphBars');
     graphBars.innerHTML = '';
 
-    const maxCount = Math.max(...counts, 1) / 2; // prevent division by zero
+    const containerHeight = 300; // px, same as your CSS
     const minBarHeight = 20; // pixels
+    const maxCount = Math.max(...counts, 1); // avoid division by zero
 
     counts.forEach((count, index) => {
-        const heightPercent = (count / maxCount) * 100;
-        const barHeightPx = Math.max((heightPercent / 100) * 300, minBarHeight);
+        // scale height proportionally to max count
+        let barHeightPx = (count / maxCount) * containerHeight;
+        barHeightPx = Math.max(barHeightPx, minBarHeight); // ensure minimum height
 
         const barWrapper = document.createElement('div');
         barWrapper.className = 'bar-wrapper';
@@ -827,6 +829,7 @@ function renderGraph(counts) {
         graphBars.appendChild(barWrapper);
     });
 }
+
 
 
         // Load upcoming homeworks
