@@ -190,14 +190,16 @@
             margin: 0 10px;
         }
 
-        .bar {
-            width: 60%;
-            background: linear-gradient(180deg, #669bbc 0%, #003049 100%);
-            border-radius: 8px 8px 0 0;
-            transition: all 0.3s;
-            position: relative;
-            min-height: 5px;
-        }
+.bar {
+    width: 60%;
+    background: linear-gradient(180deg, #669bbc 0%, #003049 100%);
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    min-height: 5px;
+    height: 0; /* start from 0 */
+    transition: height 0.8s ease-out; /* smooth animation */
+}
+
 
         .bar:hover {
             background: linear-gradient(180deg, #fdf0d5 0%, #669bbc 100%);
@@ -807,29 +809,34 @@
 
 function renderGraph(counts) {
     const graphBars = document.getElementById('graphBars');
-    graphBars.innerHTML = '';
+    graphBars.innerHTML = ''; // clear previous bars
 
-    const containerHeight = 300; // px, same as your CSS
-    const minBarHeight = 20; // pixels
     const maxCount = Math.max(...counts, 1); // avoid division by zero
+    const minBarHeight = 20; // pixels
 
     counts.forEach((count, index) => {
-        // scale height proportionally to max count
-        let barHeightPx = (count / maxCount) * containerHeight / 2; // divide by 2
-        barHeightPx = Math.max(barHeightPx, minBarHeight); // ensure minimum height
-
-
         const barWrapper = document.createElement('div');
         barWrapper.className = 'bar-wrapper';
         barWrapper.innerHTML = `
-            <div class="bar" style="height: ${barHeightPx}px">
+            <div class="bar">
                 <div class="bar-value">${count}</div>
             </div>
             <div class="bar-label">${daysOfWeek[index].substring(0, 3)}</div>
         `;
         graphBars.appendChild(barWrapper);
+
+        // Animate the bar after appending
+        const bar = barWrapper.querySelector('.bar');
+        const heightPercentage = (count / maxCount) * 100;
+        const barHeightPx = Math.max((heightPercentage / 100) * 300, minBarHeight);
+
+        // Delay to ensure transition triggers
+        setTimeout(() => {
+            bar.style.height = barHeightPx + 'px';
+        }, 50);
     });
 }
+
 
 
 
