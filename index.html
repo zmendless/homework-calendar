@@ -793,54 +793,49 @@
         }
 
         // Load graph data
-function renderGraph(counts) {
-    const graphBars = document.getElementById('graphBars');
-    graphBars.innerHTML = '';
-
-    const maxCount = Math.max(...counts, 1); // prevent division by 0
-    const minBarHeight = 10; // pixels
-
-    counts.forEach((count, index) => {
-        const barWrapper = document.createElement('div');
-        barWrapper.className = 'bar-wrapper';
-        const bar = document.createElement('div');
-        bar.className = 'bar';
-        const barValue = document.createElement('div');
-        barValue.className = 'bar-value';
-        barValue.textContent = '0';
-        const barLabel = document.createElement('div');
-        barLabel.className = 'bar-label';
-        barLabel.textContent = daysOfWeek[index].substring(0, 3);
-
-        bar.appendChild(barValue);
-        barWrapper.appendChild(bar);
-        barWrapper.appendChild(barLabel);
-        graphBars.appendChild(barWrapper);
-
-        // Animate height
-        const targetHeight = Math.max((count / maxCount) * 300, minBarHeight);
-        let currentHeight = 0;
-        let currentValue = 0;
-
-        function animate() {
-            currentHeight += (targetHeight - currentHeight) * 0.1; // easing
-            currentValue += (count - currentValue) * 0.1;
-
-            bar.style.height = `${currentHeight}px`;
-            barValue.textContent = Math.round(currentValue);
-
-            if (Math.abs(currentHeight - targetHeight) > 0.5 || Math.abs(currentValue - count) > 0.5) {
-                requestAnimationFrame(animate);
-            } else {
-                bar.style.height = `${targetHeight}px`;
-                barValue.textContent = count;
-            }
+        function loadGraphData() {
+            const weekDates = getWeekDates(currentWeekOffset);
+            const homeworkCounts = new Array(7).fill(0);
+            
+            weekDates.forEach((date, index) => {
+                const dateKey = getDateKey(date);
+                if (allHomeworkData[dateKey]) {
+                    homeworkCounts[index] = Object.keys(allHomeworkData[dateKey]).length;
+                }
+            });
+            
+            renderGraph(homeworkCounts);
         }
 
-        requestAnimationFrame(animate);
-    });
-}
+function renderGraph(counts) {
+    const graphBars = document.getElementById('graphBars');
+    graphBars.innerHTML = ''; // clear previous bars
 
+    const maxCount = Math.max(...counts, 1); // avoid division by zero
+    const minBarHeight = 20; // pixels
+
+counts.forEach((count, index) => {
+    const barWrapper = document.createElement('div');
+    barWrapper.className = 'bar-wrapper';
+    barWrapper.innerHTML = `
+        <div class="bar">
+            <div class="bar-value">${count}</div>
+        </div>
+        <div class="bar-label">${daysOfWeek[index].substring(0, 3)}</div>
+    `;
+    graphBars.appendChild(barWrapper);
+
+    const bar = barWrapper.querySelector('.bar');
+    const heightPercentage = (count / maxCount) * 100;
+    let barHeightPx = Math.max((heightPercentage / 100) * 300, minBarHeight);
+
+    // Make it 2x smaller
+    barHeightPx /= 2;
+
+    setTimeout(() => {
+        bar.style.height = barHeightPx + 'px';
+    }, 50);
+});
 
 }
 
