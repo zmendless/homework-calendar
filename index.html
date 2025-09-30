@@ -815,8 +815,9 @@ function renderGraph(counts) {
 
     counts.forEach((count, index) => {
         // scale height proportionally to max count
-        let barHeightPx = (count / maxCount) * containerHeight;
+        let barHeightPx = (count / maxCount) * containerHeight / 2; // divide by 2
         barHeightPx = Math.max(barHeightPx, minBarHeight); // ensure minimum height
+
 
         const barWrapper = document.createElement('div');
         barWrapper.className = 'bar-wrapper';
