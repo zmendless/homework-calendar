@@ -117,10 +117,14 @@
             border: 1px solid var(--glass-border);
         }
 
-        /* --- Theme Toggle --- */
-        .theme-toggle {
+        /* --- Header Buttons (Theme & Sound) --- */
+        .header-controls {
             position: absolute;
             top: 0; right: 0;
+            display: flex; gap: 8px;
+        }
+
+        .icon-btn {
             background: var(--bg-card);
             border: 1px solid var(--border);
             color: var(--text-main);
@@ -132,8 +136,8 @@
             transition: all 0.3s var(--ease-out-back);
             box-shadow: var(--shadow-sm);
         }
-        .theme-toggle:hover { transform: scale(1.1) rotate(15deg); border-color: var(--primary); }
-        .theme-toggle:active { transform: scale(0.95); }
+        .icon-btn:hover { transform: scale(1.1); border-color: var(--primary); }
+        .icon-btn:active { transform: scale(0.95); }
 
         /* --- Navigation Tabs --- */
         .view-controls {
@@ -291,9 +295,6 @@
             transition: transform 0.2s, background 0.2s, border 0.2s;
         }
         
-        /* Stagger delays handled in CSS for up to 10 items for CSS-only smooth feel, 
-           but since we create them dynamically, we can also let them just animate naturally on insert.
-           We add a small delay helper in CSS for the first few to look nice on load. */
         .homework-item:nth-child(1) { animation-delay: 0.05s; }
         .homework-item:nth-child(2) { animation-delay: 0.1s; }
         .homework-item:nth-child(3) { animation-delay: 0.15s; }
@@ -576,7 +577,7 @@
             h1 { font-size: 1.8rem; }
             .bar { width: 25px; }
             header { margin-top: 20px; }
-            .theme-toggle { top: -20px; }
+            .header-controls { top: -20px; }
         }
     </style>
 </head>
@@ -584,9 +585,15 @@
     <div class="container">
         <header>
             <h1>📚 10/A Ödev Listesi</h1>
-            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Temayı Değiştir">
-                🌙
-            </button>
+            <div class="header-controls">
+                <button class="icon-btn" id="soundToggle" onclick="toggleSound()" title="Sesi Aç/Kapat">
+                    🔊
+                </button>
+                <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Temayı Değiştir">
+                    🌙
+                </button>
+            </div>
+            
             <div class="last-update" id="lastUpdate">
                 <span>↻</span> Yükleniyor...
             </div>
@@ -707,16 +714,106 @@
         const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
         const monthNamesShort = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
+        // --- Sound Engine (Web Audio API) ---
+        let audioCtx;
+        let isMuted = localStorage.getItem('isMuted') === 'true';
+
+        // Initialize AudioContext on first user interaction to bypass autoplay policy
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        window.toggleSound = () => {
+            isMuted = !isMuted;
+            localStorage.setItem('isMuted', isMuted);
+            updateSoundIcon();
+            if(!isMuted) { 
+                initAudio();
+                playSound('click'); 
+            }
+        };
+
+        function updateSoundIcon() {
+            const btn = document.getElementById('soundToggle');
+            btn.textContent = isMuted ? '🔇' : '🔊';
+            btn.style.opacity = isMuted ? '0.6' : '1';
+        }
+
+        // Minimalist Sound Synthesizer
+        function playSound(type) {
+            if (isMuted) return;
+            initAudio(); // Ensure context is ready
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const now = audioCtx.currentTime;
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                // Gentle tick
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+
+            } else if (type === 'success') {
+                // Pleasant rising chime
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+
+            } else if (type === 'swipe') {
+                // Very soft low whoosh for tabs
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, now);
+                gain.gain.setValueAtTime(0.02, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+
+            } else if (type === 'pop') {
+                // Soft modal open
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                gain.gain.setValueAtTime(0.03, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+
+            } else if (type === 'delete') {
+                // Low thud
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+        }
+        
         // --- PWA Logic ---
         let deferredPrompt;
         
-        // Listen for the install prompt event (Android/PC)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            // Check if user has already dismissed it recently (optional)
             if(!localStorage.getItem('pwaDismissed')) {
                 document.getElementById('installPrompt').classList.add('active');
+                playSound('pop');
             }
         });
 
@@ -731,34 +828,33 @@
 
         window.dismissInstall = () => {
             document.getElementById('installPrompt').classList.remove('active');
-            // Save state so we don't annoy user immediately again
             localStorage.setItem('pwaDismissed', 'true');
+            playSound('click');
         };
 
         window.closeIosPrompt = () => {
             document.getElementById('iosPrompt').classList.remove('active');
             localStorage.setItem('pwaDismissed', 'true');
+            playSound('click');
         };
 
-        // Check for iOS
         const isIos = () => {
             const userAgent = window.navigator.userAgent.toLowerCase();
             return /iphone|ipad|ipod/.test(userAgent);
         };
 
-        // Check if in Standalone mode
         const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
 
-        // Show iOS instructions if appropriate
         if (isIos() && !isInStandaloneMode() && !localStorage.getItem('pwaDismissed')) {
-            // Show after a small delay
             setTimeout(() => {
                 document.getElementById('iosPrompt').classList.add('active');
+                playSound('pop');
             }, 2000);
         }
         
         // --- Theme Logic ---
         window.toggleTheme = function() {
+            playSound('click');
             const html = document.documentElement;
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
@@ -769,7 +865,6 @@
             const btn = document.getElementById('themeToggle');
             btn.textContent = next === 'dark' ? '🌙' : '☀️';
             
-            // Spin animation
             btn.style.transform = 'rotate(360deg)';
             setTimeout(() => btn.style.transform = '', 300);
         }
@@ -778,6 +873,7 @@
             const saved = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', saved);
             document.getElementById('themeToggle').textContent = saved === 'dark' ? '🌙' : '☀️';
+            updateSoundIcon();
         }
 
         // --- Confetti Logic ---
@@ -799,6 +895,7 @@
 
         // --- View Logic with Slide Animation ---
         window.switchView = function(view) {
+            playSound('swipe');
             currentView = view;
             document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
@@ -808,8 +905,6 @@
                 container.classList.remove('active');
             });
             
-            // Short delay to allow CSS removing active class to take effect before adding it back
-            // (Allows re-triggering animation if needed, though usually switching tabs is unique)
             const newContainer = document.getElementById(`${view}View`);
             newContainer.classList.add('active');
             
@@ -922,7 +1017,6 @@
                         const isDone = JSON.parse(localStorage.getItem('completedHomework') || '{}')[id];
                         const li = document.createElement('li');
                         li.className = `homework-item ${isDone ? 'completed' : ''}`;
-                        // Add slight staggered delay dynamically for smoother feel
                         li.style.animationDelay = `${index * 0.05}s`;
 
                         li.innerHTML = `
@@ -1027,8 +1121,11 @@
 
         // --- Interactions ---
         window.toggleHomeworkCompletion = function(id, status, btnElement) {
-            if (status && btnElement) {
-                triggerConfetti(btnElement);
+            if (status) {
+                if (btnElement) triggerConfetti(btnElement);
+                playSound('success');
+            } else {
+                playSound('click');
             }
 
             const data = JSON.parse(localStorage.getItem('completedHomework') || '{}');
@@ -1041,6 +1138,7 @@
         }
 
         window.changeWeek = function(dir) {
+            playSound('click');
             currentWeekOffset += dir;
             renderWeek();
             if(currentView === 'graph') loadGraphData();
@@ -1048,26 +1146,33 @@
 
         // --- Edit Mode & Modals ---
         window.toggleEditMode = () => {
+            playSound('pop');
             const modal = document.getElementById('passwordModal');
             modal.classList.add('active');
             setTimeout(() => document.getElementById('passwordInput').focus(), 100);
         };
-        window.closePasswordModal = () => document.getElementById('passwordModal').classList.remove('active');
+        window.closePasswordModal = () => {
+            playSound('click');
+            document.getElementById('passwordModal').classList.remove('active');
+        };
         
         window.checkPassword = function() {
             if (document.getElementById('passwordInput').value === EDIT_PASSWORD) {
+                playSound('success');
                 isEditMode = true;
                 document.getElementById('editBtn').style.display = 'none';
                 document.getElementById('lockBtn').style.display = 'flex';
                 closePasswordModal();
                 renderWeek();
             } else {
+                playSound('delete'); // Error sound
                 alert('Hatalı şifre');
             }
             document.getElementById('passwordInput').value = '';
         }
 
         window.lockEditMode = function() {
+            playSound('click');
             isEditMode = false;
             document.getElementById('editBtn').style.display = 'flex';
             document.getElementById('lockBtn').style.display = 'none';
@@ -1075,6 +1180,7 @@
         }
 
         window.openHomeworkModal = function(key) {
+            playSound('pop');
             currentEditDay = key;
             const modal = document.getElementById('homeworkModal');
             modal.classList.add('active');
@@ -1082,6 +1188,7 @@
         }
 
         window.closeHomeworkModal = function() {
+            playSound('click');
             document.getElementById('homeworkModal').classList.remove('active');
             document.getElementById('subjectInput').value = '';
             document.getElementById('homeworkInput').value = '';
@@ -1093,6 +1200,7 @@
             const task = document.getElementById('homeworkInput').value.trim();
             if (sub && task && currentEditDay) {
                 triggerConfetti(document.getElementById('saveBtnConfirm'));
+                playSound('success');
                 push(ref(database, `homework/${currentEditDay}`), {
                     subject: sub, task: task, timestamp: Date.now()
                 });
@@ -1101,11 +1209,13 @@
                     updateLastUpdateTime();
                 }, 300);
             } else {
+                playSound('delete');
                 alert('Lütfen tüm alanları doldurun.');
             }
         }
 
         window.deleteHomework = function(dateKey, id) {
+            playSound('delete');
             if(confirm('Silmek istediğine emin misin?')) {
                 remove(ref(database, `homework/${dateKey}/${id}`));
                 updateLastUpdateTime();
@@ -1128,6 +1238,9 @@
             if (e.key === 'ArrowLeft' && !document.querySelector('.modal.active')) changeWeek(-1);
             if (e.key === 'ArrowRight' && !document.querySelector('.modal.active')) changeWeek(1);
         });
+        
+        // Unlock Audio Context on first click anywhere
+        document.body.addEventListener('click', initAudio, { once: true });
     </script>
 </body>
 </html>
