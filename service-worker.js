@@ -1,4 +1,4 @@
-const CACHE_NAME = 'list-v5'; 
+const CACHE_NAME = 'list'; 
 const urlsToCache = [
   'index.html',
   'manifest.json',
