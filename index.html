@@ -685,26 +685,6 @@
         // const storage = getStorage(app); // ARTIK KULLANILMIYOR
 
         // --- PWA AUTO-CONFIGURATION ---
-function initPWA() {
-    // ... manifest kodlarınız aynı kalabilir ...
-
-    if ('serviceWorker' in navigator) {
-        // Blob yerine doğrudan dosya yolu vermek en güvenlisidir.
-        // Eğer sw.js dosyanız yoksa bu blok hata vermeye devam edebilir.
-        // Yerel test için bu kısmı try-catch içine alıyoruz.
-        try {
-            const swCode = `self.addEventListener('fetch', function(event) { return; });`;
-            const blobSW = new Blob([swCode], {type: 'application/javascript'});
-            const swURL = URL.createObjectURL(blobSW);
-            navigator.serviceWorker.register(swURL).catch(err => {
-                console.warn('SW kaydı atlandı (Protokol kısıtlaması):', err.message);
-            });
-        } catch (e) {
-            console.log("PWA başlatılamadı.");
-        }
-    }
-}
-        initPWA();
 
         // --- GLOBAL VARIABLES ---
         let currentWeekOffset = 0;
@@ -793,6 +773,8 @@ async function processMultipleFiles(files) {
             }
         }
 
+        
+
         window.installPWA = async () => {
             if (deferredPrompt) {
                 document.getElementById('installPrompt').classList.remove('active');
@@ -846,6 +828,11 @@ async function processMultipleFiles(files) {
             document.getElementById('themeToggle').textContent = saved === 'dark' ? '🌙' : '☀️';
             updateSoundIcon();
         }
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js');
+}
+
 
         // --- IMAGE LOGIC (BASE64 & COMPRESSION) ---
         // Storage yerine Resmi Sıkıştırıp Base64'e çeviren fonksiyon
@@ -1262,6 +1249,7 @@ window.saveHomework = async function() {
         alert('Lütfen tüm alanları doldurun.');
     }
 }
+
         window.deleteHomework = function(dateKey, id) { playSound('delete'); if(confirm('Silmek istediğine emin misin?')) { remove(ref(database, `homework/${dateKey}/${id}`)); updateLastUpdateTime(); } }
 
         function loadGraphData() { const weekDates = getWeekDates(currentWeekOffset); const counts = weekDates.map(date => { const key = getDateKey(date); return allHomeworkData[key] ? Object.keys(allHomeworkData[key]).length : 0; }); const graphBars = document.getElementById('graphBars'); graphBars.innerHTML = ''; const max = Math.max(...counts, 1); counts.forEach((count, i) => { const wrapper = document.createElement('div'); wrapper.className = 'bar-wrapper'; const height = (count / max) * 250; wrapper.innerHTML = `<div class="bar" style="height: ${height}px">${count > 0 ? `<div class="bar-value">${count}</div>` : ''}</div><div class="bar-label">${daysOfWeek[i].substring(0,3)}</div>`; graphBars.appendChild(wrapper); }); }
