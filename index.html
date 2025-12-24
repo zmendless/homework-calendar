@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr" data-theme="dark">
+<html lang="tr" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>10/A Ödev Takip</title>
+    <title>10/A Ödev Listesi</title>
     <link rel="manifest" id="manifest-placeholder">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,8 @@
             --primary-hover: #2563eb; 
             --accent: #8b5cf6;        
             --success: #10b981;       
-            --danger: #ef4444;        
+            --danger: #ef4444;   
+            --warning: #f59e0b;     
             --text-main: #f8fafc;     
             --text-muted: #94a3b8;    
             --border: #334155;        
@@ -51,6 +52,7 @@
             --accent: #7c3aed;        
             --success: #059669;       
             --danger: #dc2626;        
+            --warning: #d97706;
             --text-main: #0f172a;     
             --text-muted: #64748b;    
             --border: #e2e8f0;        
@@ -98,13 +100,12 @@
             position: relative; 
         }
 
-        /* Controls Container */
         .header-controls {
             display: flex; 
             gap: 12px;
-            margin-bottom: 15px; /* Push title down */
+            margin-bottom: 15px;
             width: 100%;
-            justify-content: flex-end; /* Align to right */
+            justify-content: flex-end;
         }
 
         h1 {
@@ -112,7 +113,7 @@
             font-weight: 700;
             letter-spacing: -0.025em;
             background: linear-gradient(to right, var(--text-main), var(--text-muted));
-            -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 8px;
             text-align: center;
@@ -124,7 +125,7 @@
             background: var(--bg-card);
             border: 1px solid var(--border);
             color: var(--text-main);
-            width: 44px; height: 44px; /* Slightly larger for touch */
+            width: 44px; height: 44px;
             border-radius: 12px;
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
@@ -159,7 +160,8 @@
             box-shadow: var(--shadow-md);
             transition: background 0.4s, border 0.4s;
             max-width: 100%;
-            overflow-x: auto; /* Scroll if too narrow */
+            overflow-x: auto;
+            gap: 5px;
         }
 
         .view-btn {
@@ -167,7 +169,7 @@
             color: var(--text-muted);
             border: none;
             border-radius: 10px;
-            padding: 8px 20px;
+            padding: 8px 16px;
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
@@ -297,14 +299,17 @@
         .tick-btn { background: var(--success); color: white; }
         .tick-btn.completed { background: var(--text-muted); }
         .delete-btn { background: var(--danger); color: white; }
+        .photo-btn { background: var(--accent); color: white; }
 
-        .add-homework {
+        .add-homework, .add-exam-btn {
             margin-top: 15px; width: 100%; padding: 10px;
             background: transparent; border: 1px dashed var(--border);
             border-radius: var(--radius-md); color: var(--text-muted);
             font-size: 0.9rem; font-weight: 500; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: all 0.3s;
         }
+        .add-homework:hover, .add-exam-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--glass-bg); }
 
         .no-homework { color: var(--text-muted); font-size: 0.9rem; font-style: italic; text-align: center; padding: 20px 0; opacity: 0.7; }
 
@@ -319,7 +324,88 @@
         .upcoming-item { background: var(--glass-bg); border-left: 4px solid var(--primary); padding: 16px; margin-bottom: 12px; border-radius: 0 var(--radius-md) var(--radius-md) 0; display: flex; justify-content: space-between; align-items: center; opacity: 0; animation: itemEntry 0.5s forwards; }
         .upcoming-item.overdue { border-left-color: var(--danger); }
         .upcoming-item.today { border-left-color: var(--success); }
+
+        /* --- Exams View Styles --- */
+
+        /* Görsel Konteynırı */
+.exam-img-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.exam-img-container {
+    width: 100%;
+    aspect-ratio: 1 / 1; /* Kare görünüm */
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.exam-embed-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+/* Ödev Görsel Izgarası */
+.hw-img-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.hw-img-container {
+    width: 60px; /* Liste içinde daha küçük durması için */
+    height: 60px;
+    overflow: hidden;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.hw-embed-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+        .exams-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .exam-card { 
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px;
+            position: relative; overflow: hidden; transition: transform 0.2s;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .exam-card::before { content: ''; position: absolute; top:0; left:0; bottom:0; width: 5px; background: var(--accent); }
+        .exam-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .exam-subject { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
+        .exam-date-badge { 
+            background: rgba(139, 92, 246, 0.15); color: var(--accent); 
+            padding: 4px 10px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        .exam-topics { font-size: 0.9rem; color: var(--text-muted); line-height: 1.4; flex-grow: 1; }
+        .exam-countdown { 
+            margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .countdown-text { font-weight: 700; font-size: 0.95rem; }
+        .countdown-urgent { color: var(--danger); }
+        .countdown-warning { color: var(--warning); }
+        .countdown-normal { color: var(--success); }
         
+        .delete-exam-btn {
+            background: transparent; border: 1px solid var(--danger); color: var(--danger);
+            border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .delete-exam-btn:hover { background: var(--danger); color: white; }
+
         /* --- Floating Action Button --- */
         .edit-controls { position: fixed; bottom: 30px; right: 30px; z-index: 100; }
         .fab-btn {
@@ -337,12 +423,63 @@
         .modal.active { display: flex; opacity: 1; }
         .modal-content { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 30px; width: 100%; max-width: 400px; transform: scale(0.8); transition: transform 0.4s var(--ease-out-back); color: var(--text-main); }
         .modal.active .modal-content { transform: scale(1); }
-        .modal input { width: 100%; padding: 12px 16px; background: var(--bg-body); border: 2px solid var(--border); border-radius: var(--radius-md); color: var(--text-main); font-size: 1rem; outline: none; margin-bottom: 15px; }
-        .modal input:focus { border-color: var(--primary); }
+        .modal input, .modal textarea { width: 100%; padding: 12px 16px; background: var(--bg-body); border: 2px solid var(--border); border-radius: var(--radius-md); color: var(--text-main); font-size: 1rem; outline: none; margin-bottom: 15px; font-family: inherit; }
+        .modal input:focus, .modal textarea:focus { border-color: var(--primary); }
+        
+        /* File Input Styling */
+        input[type="file"] {
+            border: 1px dashed var(--border);
+            padding: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        input[type="file"]::file-selector-button {
+            margin-right: 10px;
+            background: var(--bg-card-hover);
+            color: var(--text-main);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
         .modal-buttons { display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px; }
         .modal button { padding: 10px 24px; border-radius: var(--radius-md); border: none; font-weight: 600; cursor: pointer; }
         .btn-cancel { background: transparent; color: var(--text-muted); }
-        .btn-confirm { background: var(--primary); color: white; }
+        .btn-confirm { background: var(--primary); color: white; transition: opacity 0.3s; }
+        .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Image Viewer Modal */
+        #imageModal .modal-content {
+            background: transparent;
+            border: none;
+            max-width: 90vw;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #fullImage {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: var(--radius-md);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+        .close-img-btn {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: 1px solid white;
+            border-radius: 50%;
+            width: 32px; height: 32px;
+            cursor: pointer;
+        }
+
+        /* Custom Date Input Style */
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
+        [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0); }
 
         /* --- Install Prompt (PWA) --- */
         .install-prompt {
@@ -397,7 +534,7 @@
                 </button>
             </div>
 
-            <h1>📚 10/A Ödev Listesi</h1>
+            <h1>10/A Ödev Listesi</h1>
             
             <div class="last-update" id="lastUpdate">
                 <span>↻</span> Yükleniyor...
@@ -407,6 +544,7 @@
                 <button class="view-btn active" onclick="switchView('calendar')">Takvim</button>
                 <button class="view-btn" onclick="switchView('graph')">Grafik</button>
                 <button class="view-btn" onclick="switchView('upcoming')">Yaklaşan</button>
+                <button class="view-btn" onclick="switchView('exams')">Sınavlar</button>
             </div>
         </header>
 
@@ -432,6 +570,21 @@
                 <ul class="upcoming-list" id="upcomingList" style="list-style: none;">
                     <li class="no-homework">Yükleniyor...</li>
                 </ul>
+            </div>
+        </div>
+
+        <div class="view-container" id="examsView">
+            <div class="upcoming-container" style="border-left: none; background: transparent; padding: 0; border: none;">
+                <h2 style="margin-bottom: 20px; font-weight: 600; color: var(--text-main);">Yaklaşan Sınavlar</h2>
+                <div id="examsList" class="exams-grid">
+                    <p class="no-homework">Yükleniyor...</p>
+                </div>
+                
+                <div id="addExamContainer" style="display:none; margin-top:20px;">
+                    <button class="add-exam-btn" onclick="openExamModal()">
+                        <span style="font-size: 1.2rem; font-weight:bold;">+</span> Yeni Sınav Ekle
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -473,13 +626,41 @@
     <div class="modal" id="homeworkModal">
         <div class="modal-content">
             <h2 class="modal-title">Yeni Ödev</h2>
-            <div class="input-group"><input type="text" id="subjectInput" placeholder="Ders (Örn: Matematik)"><input type="text" id="homeworkInput" placeholder="Ödev Detayı"></div>
+            <div class="input-group">
+                <input type="text" id="subjectInput" placeholder="Ders (Örn: Matematik)">
+                <input type="text" id="homeworkInput" placeholder="Ödev Detayı">
+                <p style="margin-bottom:5px; font-size:0.8rem; color:var(--text-muted);">Fotoğraf Ekle (Opsiyonel):</p>
+<input type="file" id="homeworkFileInput" accept="image/*" multiple>            </div>
             <div class="modal-buttons"><button class="btn-cancel" onclick="closeHomeworkModal()">Vazgeç</button><button class="btn-confirm" id="saveBtnConfirm" onclick="saveHomework()">Kaydet</button></div>
         </div>
     </div>
 
-    <script type="module">
+    <div class="modal" id="examModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Yeni Sınav Ekle</h2>
+            <div class="input-group">
+                <input type="date" id="examDateInput" placeholder="Tarih">
+                <input type="text" id="examSubjectInput" placeholder="Ders (Örn: Fizik)">
+                <textarea id="examTopicsInput" rows="3" placeholder="Konular (Örn: Kuvvet ve Hareket, Enerji)"></textarea>
+                <p style="margin-bottom:5px; font-size:0.8rem; color:var(--text-muted);">Çalışma Kağıdı / Fotoğraf (Opsiyonel):</p>
+<input type="file" id="examFileInput" accept="image/*" multiple>            </div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeExamModal()">Vazgeç</button>
+                <button class="btn-confirm" id="saveExamBtnConfirm" onclick="saveExam()">Sınavı Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="imageModal" onclick="closeImageModal(event)">
+        <div class="modal-content">
+            <button class="close-img-btn" onclick="closeImageModal(event, true)">✕</button>
+            <img id="fullImage" src="" alt="Görsel">
+        </div>
+    </div>
+
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        // Storage importlarını sildik, sadece database kaldı
         import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -495,37 +676,28 @@
 
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
+        // const storage = getStorage(app); // ARTIK KULLANILMIYOR
 
         // --- PWA AUTO-CONFIGURATION ---
-        // Generates Manifest and Service Worker in-memory to force "Install App" capability
-        function initPWA() {
-            // 1. Create Dynamic Manifest
-            const manifest = {
-                "name": "10/A Ödev Takip",
-                "short_name": "10/A Ödev",
-                "start_url": ".",
-                "display": "standalone",
-                "background_color": "#0f172a",
-                "theme_color": "#3b82f6",
-                "icons": [
-                    { "src": "https://cdn-icons-png.flaticon.com/512/3534/3534033.png", "sizes": "192x192", "type": "image/png" },
-                    { "src": "https://cdn-icons-png.flaticon.com/512/3534/3534033.png", "sizes": "512x512", "type": "image/png" }
-                ]
-            };
-            const stringManifest = JSON.stringify(manifest);
-            const blobManifest = new Blob([stringManifest], {type: 'application/json'});
-            const manifestURL = URL.createObjectURL(blobManifest);
-            document.querySelector('#manifest-placeholder').setAttribute('href', manifestURL);
+function initPWA() {
+    // ... manifest kodlarınız aynı kalabilir ...
 
-            // 2. Register Dummy Service Worker (Required for PWA installability)
-            if ('serviceWorker' in navigator) {
-                const swCode = `self.addEventListener('fetch', function(event) { return; });`;
-                const blobSW = new Blob([swCode], {type: 'application/javascript'});
-                const swURL = URL.createObjectURL(blobSW);
-                navigator.serviceWorker.register(swURL).then(() => console.log('SW Registered'))
-                .catch(err => console.log('SW Fail', err));
-            }
+    if ('serviceWorker' in navigator) {
+        // Blob yerine doğrudan dosya yolu vermek en güvenlisidir.
+        // Eğer sw.js dosyanız yoksa bu blok hata vermeye devam edebilir.
+        // Yerel test için bu kısmı try-catch içine alıyoruz.
+        try {
+            const swCode = `self.addEventListener('fetch', function(event) { return; });`;
+            const blobSW = new Blob([swCode], {type: 'application/javascript'});
+            const swURL = URL.createObjectURL(blobSW);
+            navigator.serviceWorker.register(swURL).catch(err => {
+                console.warn('SW kaydı atlandı (Protokol kısıtlaması):', err.message);
+            });
+        } catch (e) {
+            console.log("PWA başlatılamadı.");
         }
+    }
+}
         initPWA();
 
         // --- GLOBAL VARIABLES ---
@@ -534,6 +706,7 @@
         let currentEditDay = null;
         let currentView = 'calendar';
         let allHomeworkData = {};
+        let allExamsData = {};
         const EDIT_PASSWORD = "class2024";
 
         const daysOfWeek = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
@@ -560,6 +733,12 @@
             btn.textContent = isMuted ? '🔇' : '🔊';
             btn.style.opacity = isMuted ? '0.6' : '1';
         }
+
+        
+async function processMultipleFiles(files) {
+    const promises = Array.from(files).map(file => compressAndConvertToBase64(file));
+    return await Promise.all(promises);
+}
 
         function playSound(type) {
             if (isMuted) return;
@@ -590,16 +769,15 @@
             }
         }
         
-        // --- PWA INSTALL LOGIC (Robut) ---
+        // --- PWA INSTALL LOGIC ---
         let deferredPrompt;
         let isPwaDetected = false;
         
-        // 1. Listen for browser event (Android/PC)
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             isPwaDetected = true;
-            showAndroidPrompt(); // Browser is ready, show our custom UI
+            showAndroidPrompt();
         });
 
         function showAndroidPrompt() {
@@ -609,16 +787,13 @@
             }
         }
 
-        // 2. Handle "Install" Click
         window.installPWA = async () => {
             if (deferredPrompt) {
-                // We have the browser event, trigger it
                 document.getElementById('installPrompt').classList.remove('active');
                 deferredPrompt.prompt();
                 deferredPrompt = null;
             } else {
-                // Fallback: Browser didn't give us the event (Common if already installed, or browser blocked it)
-                alert('Otomatik kurulum başlatılamadı.\n\nLütfen tarayıcınızın menüsünden (üç nokta) "Uygulamayı Yükle" veya "Ana Ekrana Ekle" seçeneğini kullanın.');
+                alert('Otomatik kurulum başlatılamadı.\n\nLütfen tarayıcınızın menüsünden "Uygulamayı Yükle" veya "Ana Ekrana Ekle" seçeneğini kullanın.');
             }
         };
 
@@ -637,22 +812,12 @@
         const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
         const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
 
-        // 3. Fallback timer: If 'beforeinstallprompt' doesn't fire after 3 seconds, check if we should show manual instructions
         setTimeout(() => {
-            if (isInStandaloneMode()) return; // Already installed
+            if (isInStandaloneMode()) return;
             if (localStorage.getItem('pwaDismissed')) return;
-
             if (isIos()) {
                 document.getElementById('iosPrompt').classList.add('active');
                 playSound('pop');
-            } else if (!isPwaDetected) {
-                // It's Android but event didn't fire. 
-                // We can optionally show the prompt but change the button to "How to Install"
-                // For now, we'll leave it hidden to avoid annoyance, or show it if you really want to force it:
-                // document.getElementById('promptTitle').innerText = "Ana Ekrana Ekle";
-                // document.getElementById('promptDesc').innerText = "Tarayıcı menüsünden 'Uygulamayı Yükle'yi seçin.";
-                // document.getElementById('installBtn').innerText = "Tamam";
-                // document.getElementById('installPrompt').classList.add('active');
             }
         }, 3000);
         
@@ -674,6 +839,66 @@
             document.documentElement.setAttribute('data-theme', saved);
             document.getElementById('themeToggle').textContent = saved === 'dark' ? '🌙' : '☀️';
             updateSoundIcon();
+        }
+
+        // --- IMAGE LOGIC (BASE64 & COMPRESSION) ---
+        // Storage yerine Resmi Sıkıştırıp Base64'e çeviren fonksiyon
+        function compressAndConvertToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Maksimum boyut ayarları (Database şişmemesi için önemli)
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // JPEG formatında 0.6 kalitesinde sıkıştır
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                        resolve(dataUrl);
+                    };
+                    img.onerror = (err) => reject(err);
+                };
+                reader.onerror = (err) => reject(err);
+            });
+        }
+
+        window.viewImage = function(url) {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('fullImage');
+            img.src = url; // Base64 string doğrudan src'ye atanabilir
+            modal.classList.add('active');
+            playSound('pop');
+        }
+
+        window.closeImageModal = function(e, force = false) {
+            if (force || e.target.id === 'imageModal') {
+                document.getElementById('imageModal').classList.remove('active');
+                playSound('click');
+            }
         }
 
         // --- FIREBASE & DATA LOGIC ---
@@ -702,7 +927,7 @@
             const monday = new Date(today.setDate(diff));
             monday.setDate(monday.getDate() + (weekOffset * 7));
             const weekDates = [];
-            for (let i = 0; i < 7; i++) {
+            for (let i = 0; i < 5; i++) {
                 const date = new Date(monday);
                 date.setDate(monday.getDate() + i);
                 weekDates.push(date);
@@ -722,60 +947,202 @@
             return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
         }
 
-        function renderWeek() {
-            const weekDates = getWeekDates(currentWeekOffset);
-            document.getElementById('weekDisplay').textContent = `${weekDates[0].getDate()} ${monthNamesShort[weekDates[0].getMonth()]} - ${weekDates[6].getDate()} ${monthNamesShort[weekDates[6].getMonth()]}`;
-            
-            const daysGrid = document.getElementById('daysGrid');
-            daysGrid.innerHTML = '';
-            
-            weekDates.forEach((date, index) => {
-                const dateKey = getDateKey(date);
-                const dayCard = document.createElement('div');
-                dayCard.className = `day-card ${isToday(date) ? 'today' : ''}`;
-                
-                const addBtnHtml = isEditMode ? `<div class="add-homework" onclick="openHomeworkModal('${dateKey}')"><span>+</span> Ödev Ekle</div>` : '';
+// --- RENDER WEEK GÜNCELLEMESİ ---
+function renderWeek() {
+    const weekDates = getWeekDates(currentWeekOffset);
+    document.getElementById('weekDisplay').textContent = `${weekDates[0].getDate()} ${monthNamesShort[weekDates[0].getMonth()]} - ${weekDates[4].getDate()} ${monthNamesShort[weekDates[4].getMonth()]}`;
+    
+    const daysGrid = document.getElementById('daysGrid');
+    daysGrid.innerHTML = '';
+    
+    weekDates.forEach((date, index) => {
+        const dateKey = getDateKey(date);
+        const dayCard = document.createElement('div');
+        dayCard.className = `day-card ${isToday(date) ? 'today' : ''}`;
+        
+        const addBtnHtml = isEditMode ? `<div class="add-homework" onclick="openHomeworkModal('${dateKey}')"><span>+</span> Ödev Ekle</div>` : '';
 
-                dayCard.innerHTML = `
-                    <div class="day-header">${daysOfWeek[index]}<span>${date.getDate()} ${monthNamesShort[date.getMonth()]}</span></div>
-                    <ul class="homework-list" id="homework-${dateKey}"><li class="no-homework">Yükleniyor...</li></ul>
-                    ${addBtnHtml}
-                `;
-                daysGrid.appendChild(dayCard);
-                loadHomework(dateKey);
+        dayCard.innerHTML = `
+            <div class="day-header">${daysOfWeek[index]}<span>${date.getDate()} ${monthNamesShort[date.getMonth()]}</span></div>
+            <ul class="homework-list" id="homework-${dateKey}"><li class="no-homework">Yükleniyor...</li></ul>
+            ${addBtnHtml}
+        `;
+        daysGrid.appendChild(dayCard);
+        
+        // DÜZELTME: listElement parametresini burada çekip gönderiyoruz
+        const listElement = document.getElementById(`homework-${dateKey}`);
+        loadHomework(dateKey, listElement);
+    });
+}
+
+// --- LOAD HOMEWORK GÜNCELLEMESİ ---
+function loadHomework(dateKey, listElement) {
+    if (!listElement) return; // Güvenlik kontrolü
+    listElement.innerHTML = '';
+    
+    const dayData = allHomeworkData[dateKey];
+    if (!dayData) {
+        listElement.innerHTML = '<li class="no-homework">Ödev yok</li>';
+        return;
+    }
+
+    // userId tanımlı değilse hata vermemesi için
+    const userId = "admin"; 
+
+    Object.entries(dayData).forEach(([id, hw]) => {
+        const isDone = hw.completedBy && hw.completedBy[userId];
+        const li = document.createElement('li');
+        li.className = 'homework-item';
+        
+        // Çoklu görsel işleme
+        let homeworkPhotosHtml = '';
+        if (hw.imageUrls && Array.isArray(hw.imageUrls)) {
+            homeworkPhotosHtml = `<div class="hw-img-grid">`;
+            hw.imageUrls.forEach(url => {
+                homeworkPhotosHtml += `
+                    <div class="hw-img-container" onclick="viewImage('${url}')">
+                        <img src="${url}" class="hw-embed-img">
+                    </div>`;
             });
+            homeworkPhotosHtml += `</div>`;
         }
 
-        function loadHomework(dateKey) {
-            const homeworkRef = ref(database, `homework/${dateKey}`);
-            onValue(homeworkRef, (snapshot) => {
-                const list = document.getElementById(`homework-${dateKey}`);
-                if (!list) return;
-                list.innerHTML = '';
-                const data = snapshot.val();
-                
-                if (data) allHomeworkData[dateKey] = data; else delete allHomeworkData[dateKey];
-                
-                if (data && Object.keys(data).length > 0) {
-                    Object.entries(data).forEach(([id, hw], index) => {
-                        const isDone = JSON.parse(localStorage.getItem('completedHomework') || '{}')[id];
-                        const li = document.createElement('li');
-                        li.className = `homework-item ${isDone ? 'completed' : ''}`;
-                        li.style.animationDelay = `${index * 0.05}s`;
-                        li.innerHTML = `
-                            <div style="flex:1"><span class="homework-subject">${hw.subject}</span><div class="homework-text">${hw.task}</div></div>
-                            <div class="homework-buttons">
-                                <button class="action-btn tick-btn ${isDone ? 'completed' : ''}" onclick="toggleHomeworkCompletion('${id}', ${!isDone}, this)">${isDone ? '↩' : '✓'}</button>
-                                ${isEditMode ? `<button class="action-btn delete-btn" onclick="deleteHomework('${dateKey}', '${id}')">✕</button>` : ''}
-                            </div>
-                        `;
-                        list.appendChild(li);
-                    });
-                } else { list.innerHTML = `<li class="no-homework">Ödev yok</li>`; }
-                
-                if (currentView === 'graph') loadGraphData();
-                if (currentView === 'upcoming') loadUpcomingHomeworks();
+        li.innerHTML = `
+            <div style="flex:1">
+                <span class="homework-subject">${hw.subject}</span>
+                <div class="homework-text">${hw.task}</div>
+                ${homeworkPhotosHtml}
+            </div>
+            <div class="homework-buttons">
+                <button class="action-btn tick-btn ${isDone ? 'completed' : ''}" 
+                        onclick="toggleHomeworkCompletion('${dateKey}', '${id}', ${!isDone}, this)">
+                    ${isDone ? '↩' : '✓'}
+                </button>
+                ${isEditMode ? `<button class="action-btn delete-btn" onclick="deleteHomework('${dateKey}', '${id}')">✕</button>` : ''}
+            </div>
+        `;
+        listElement.appendChild(li);
+    });
+}
+
+        // --- EXAM FUNCTIONS ---
+function loadExams() {
+    const list = document.getElementById('examsList');
+    
+    if (!allExamsData || Object.keys(allExamsData).length === 0) {
+        list.innerHTML = '<p class="no-homework" style="grid-column: 1/-1;">Henüz girilmiş bir sınav yok.</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    
+    // Verileri diziye çevir ve tarihe göre sırala
+    const exams = Object.entries(allExamsData).map(([id, exam]) => ({ id, ...exam }));
+    exams.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    exams.forEach((exam) => {
+        const examDate = new Date(exam.date);
+        const timeDiff = examDate - today;
+        const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        
+        if (daysLeft < -2) return;
+
+        let daysText = "";
+        let statusClass = "countdown-normal";
+
+        if (daysLeft < 0) { 
+            daysText = `${Math.abs(daysLeft)} gün önceydi`; 
+            statusClass = "countdown-text"; 
+        }
+        else if (daysLeft === 0) { 
+            daysText = "BUGÜN!"; 
+            statusClass = "countdown-urgent"; 
+        }
+        else if (daysLeft === 1) { 
+            daysText = "Yarın"; 
+            statusClass = "countdown-urgent"; 
+        }
+        else if (daysLeft <= 3) { 
+            daysText = `${daysLeft} gün kaldı`; 
+            statusClass = "countdown-warning"; 
+        }
+        else { 
+            daysText = `${daysLeft} gün kaldı`; 
+        }
+
+        const formattedDate = `${examDate.getDate()} ${monthNamesShort[examDate.getMonth()]}`;
+        
+        // --- Çoklu Görsel İşleme Mantığı ---
+        let examPhotosHtml = '';
+        
+        // Yeni yapı: imageUrls (dizi) varsa
+        if (exam.imageUrls && Array.isArray(exam.imageUrls)) {
+            examPhotosHtml = `<div class="exam-img-grid">`;
+            exam.imageUrls.forEach(url => {
+                examPhotosHtml += `
+                    <div class="exam-img-container" onclick="viewImage('${url}')">
+                        <img src="${url}" class="exam-embed-img" alt="Sınav Notu">
+                    </div>`;
             });
+            examPhotosHtml += `</div>`;
+        } 
+        // Eski yapı: Sadece tek bir imageUrl varsa (Geriye dönük uyumluluk)
+        else if (exam.imageUrl) {
+            examPhotosHtml = `
+                <div class="exam-img-grid">
+                    <div class="exam-img-container" onclick="viewImage('${exam.imageUrl}')">
+                        <img src="${exam.imageUrl}" class="exam-embed-img" alt="Sınav Notu">
+                    </div>
+                </div>`;
+        }
+
+        const deleteBtn = isEditMode ? `<button class="delete-exam-btn" onclick="deleteExam('${exam.id}')" title="Sınavı Sil">✕</button>` : '';
+
+        const card = document.createElement('div');
+        card.className = 'exam-card';
+        card.innerHTML = `
+            <div class="exam-header">
+                <span class="exam-subject">${exam.subject}</span>
+                <span class="exam-date-badge">${formattedDate}</span>
+            </div>
+            <div class="exam-topics" style="margin-bottom: 8px;">${exam.topics}</div>
+            
+            ${examPhotosHtml} 
+            
+            <div class="exam-countdown">
+                <div>
+                   <span class="${statusClass} countdown-text">${daysText}</span>
+                </div>
+                ${deleteBtn}
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+        window.openExamModal = function() {
+            playSound('pop');
+            document.getElementById('examModal').classList.add('active');
+        }
+        window.closeExamModal = function() {
+            playSound('click');
+            document.getElementById('examModal').classList.remove('active');
+            document.getElementById('examDateInput').value = '';
+            document.getElementById('examSubjectInput').value = '';
+            document.getElementById('examTopicsInput').value = '';
+            document.getElementById('examFileInput').value = '';
+        }
+        
+        
+        
+        window.deleteExam = function(id) {
+            playSound('delete');
+            if(confirm('Bu sınavı silmek istediğine emin misin?')) {
+                remove(ref(database, `exams/${id}`));
+                updateLastUpdateTime();
+            }
         }
 
         window.toggleHomeworkCompletion = function(id, status, btnElement) {
@@ -787,27 +1154,139 @@
         }
 
         window.changeWeek = function(dir) { playSound('click'); currentWeekOffset += dir; renderWeek(); if(currentView === 'graph') loadGraphData(); }
-        window.switchView = function(view) { playSound('click'); currentView = view; document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active')); event.target.classList.add('active'); document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active')); document.getElementById(`${view}View`).classList.add('active'); if (view === 'graph') loadGraphData(); if (view === 'upcoming') loadUpcomingHomeworks(); }
+        
+        window.switchView = function(view) { 
+            playSound('click'); 
+            currentView = view; 
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active')); 
+            event.target.classList.add('active'); 
+            document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active')); 
+            document.getElementById(`${view}View`).classList.add('active'); 
+            
+            if (view === 'graph') loadGraphData(); 
+            if (view === 'upcoming') loadUpcomingHomeworks();
+            if (view === 'exams') loadExams();
+        }
+
         window.triggerConfetti = function(element) { const rect = element.getBoundingClientRect(); confetti({ particleCount: 60, spread: 70, origin: { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight }, colors: ['#3b82f6', '#8b5cf6', '#10b981', '#fbbf24'], disableForReducedMotion: true, zIndex: 2000 }); }
 
         // --- MODAL & EDIT ---
         window.toggleEditMode = () => { playSound('pop'); document.getElementById('passwordModal').classList.add('active'); setTimeout(() => document.getElementById('passwordInput').focus(), 100); };
         window.closePasswordModal = () => { playSound('click'); document.getElementById('passwordModal').classList.remove('active'); };
-        window.checkPassword = function() { if (document.getElementById('passwordInput').value === EDIT_PASSWORD) { playSound('success'); isEditMode = true; document.getElementById('editBtn').style.display = 'none'; document.getElementById('lockBtn').style.display = 'flex'; closePasswordModal(); renderWeek(); } else { playSound('delete'); alert('Hatalı şifre'); } document.getElementById('passwordInput').value = ''; }
-        window.lockEditMode = function() { playSound('click'); isEditMode = false; document.getElementById('editBtn').style.display = 'flex'; document.getElementById('lockBtn').style.display = 'none'; renderWeek(); }
+        
+        window.checkPassword = function() { 
+            if (document.getElementById('passwordInput').value === EDIT_PASSWORD) { 
+                playSound('success'); 
+                isEditMode = true; 
+                document.getElementById('editBtn').style.display = 'none'; 
+                document.getElementById('lockBtn').style.display = 'flex'; 
+                document.getElementById('addExamContainer').style.display = 'block';
+                closePasswordModal(); 
+                renderWeek();
+                if(currentView === 'exams') loadExams(); 
+            } else { 
+                playSound('delete'); 
+                alert('Hatalı şifre'); 
+            } 
+            document.getElementById('passwordInput').value = ''; 
+        }
+
+        window.lockEditMode = function() { 
+            playSound('click'); 
+            isEditMode = false; 
+            document.getElementById('editBtn').style.display = 'flex'; 
+            document.getElementById('lockBtn').style.display = 'none'; 
+            document.getElementById('addExamContainer').style.display = 'none';
+            renderWeek();
+            if(currentView === 'exams') loadExams(); 
+        }
+
         window.openHomeworkModal = function(key) { playSound('pop'); currentEditDay = key; document.getElementById('homeworkModal').classList.add('active'); setTimeout(() => document.getElementById('subjectInput').focus(), 100); }
-        window.closeHomeworkModal = function() { playSound('click'); document.getElementById('homeworkModal').classList.remove('active'); document.getElementById('subjectInput').value = ''; document.getElementById('homeworkInput').value = ''; currentEditDay = null; }
-        window.saveHomework = function() { const sub = document.getElementById('subjectInput').value.trim(); const task = document.getElementById('homeworkInput').value.trim(); if (sub && task && currentEditDay) { window.triggerConfetti(document.getElementById('saveBtnConfirm')); playSound('success'); push(ref(database, `homework/${currentEditDay}`), { subject: sub, task: task, timestamp: Date.now() }); setTimeout(() => { closeHomeworkModal(); updateLastUpdateTime(); }, 300); } else { playSound('delete'); alert('Lütfen tüm alanları doldurun.'); } }
+        window.closeHomeworkModal = function() { playSound('click'); document.getElementById('homeworkModal').classList.remove('active'); document.getElementById('subjectInput').value = ''; document.getElementById('homeworkInput').value = ''; document.getElementById('homeworkFileInput').value = ''; currentEditDay = null; }
+        
+        // --- MODIFIED SAVE HOMEWORK ---
+window.saveHomework = async function() {
+    const dateKey = currentEditDay; // Mevcut seçili günü temsil eder
+    const subject = document.getElementById('subjectInput').value.trim();
+    const task = document.getElementById('homeworkInput').value.trim();
+    const fileInput = document.getElementById('homeworkFileInput');
+    const btn = document.getElementById('saveBtnConfirm');
+    
+    const userId = "admin"; 
+
+    if (dateKey && subject && task) {
+        btn.disabled = true;
+        btn.textContent = "Yükleniyor...";
+        
+        let imageUrls = null;
+        
+        // Dosya yükleme kontrolü
+        if(fileInput && fileInput.files && fileInput.files.length > 0) {
+            try {
+                imageUrls = await processMultipleFiles(fileInput.files);
+            } catch (e) {
+                console.error("Görsel işleme hatası:", e);
+                alert("Fotoğraflar işlenirken bir hata oluştu.");
+            }
+        }
+
+        try {
+            // "date" yerine "dateKey" kullanılarak hata düzeltildi
+            await push(ref(database, `homework/${dateKey}`), {
+                subject: subject,
+                task: task,
+                imageUrls: imageUrls || null, 
+                createdBy: userId,
+                createdAt: Date.now()
+            });
+
+            window.triggerConfetti(btn);
+            playSound('success');
+            closeHomeworkModal();
+            updateLastUpdateTime();
+        } catch (error) {
+            console.error("Firebase hata:", error);
+            alert("Ödev kaydedilemedi.");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Kaydet";
+        }
+    } else {
+        playSound('delete');
+        alert('Lütfen tüm alanları doldurun.');
+    }
+}
         window.deleteHomework = function(dateKey, id) { playSound('delete'); if(confirm('Silmek istediğine emin misin?')) { remove(ref(database, `homework/${dateKey}/${id}`)); updateLastUpdateTime(); } }
 
         function loadGraphData() { const weekDates = getWeekDates(currentWeekOffset); const counts = weekDates.map(date => { const key = getDateKey(date); return allHomeworkData[key] ? Object.keys(allHomeworkData[key]).length : 0; }); const graphBars = document.getElementById('graphBars'); graphBars.innerHTML = ''; const max = Math.max(...counts, 1); counts.forEach((count, i) => { const wrapper = document.createElement('div'); wrapper.className = 'bar-wrapper'; const height = (count / max) * 250; wrapper.innerHTML = `<div class="bar" style="height: ${height}px">${count > 0 ? `<div class="bar-value">${count}</div>` : ''}</div><div class="bar-label">${daysOfWeek[i].substring(0,3)}</div>`; graphBars.appendChild(wrapper); }); }
-        function loadUpcomingHomeworks() { const today = new Date(); today.setHours(0,0,0,0); const list = document.getElementById('upcomingList'); list.innerHTML = ''; const items = []; const completed = JSON.parse(localStorage.getItem('completedHomework') || '{}'); Object.entries(allHomeworkData).forEach(([dKey, hws]) => { const dDate = new Date(dKey); Object.entries(hws).forEach(([id, hw]) => { if(!completed[id]) { items.push({ id, hw, date: dDate, diff: Math.ceil((dDate - today) / (86400000)) }); } }); }); items.sort((a,b) => a.date - b.date); if(items.length === 0) { list.innerHTML = '<li class="no-homework">Harika! Hiç ödevin kalmadı 🎉</li>'; return; } items.forEach((item, index) => { let statusClass = item.diff < 0 ? 'overdue' : (item.diff === 0 ? 'today' : ''); let timeText = item.diff < 0 ? `${Math.abs(item.diff)} gün gecikti` : (item.diff === 0 ? 'Bugün' : `${item.diff} gün kaldı`); const li = document.createElement('li'); li.className = `upcoming-item ${statusClass}`; li.style.animationDelay = `${index * 0.05}s`; li.innerHTML = `<div><div class="upcoming-subject">${item.hw.subject}</div><div class="upcoming-task">${item.hw.task}</div><div class="upcoming-date">${timeText} (${item.date.toLocaleDateString('tr-TR')})</div></div><button class="action-btn tick-btn" onclick="toggleHomeworkCompletion('${item.id}', true, this)">✓</button>`; list.appendChild(li); }); }
+        
+        function loadUpcomingHomeworks() { const today = new Date(); today.setHours(0,0,0,0); const list = document.getElementById('upcomingList'); list.innerHTML = ''; const items = []; const completed = JSON.parse(localStorage.getItem('completedHomework') || '{}'); Object.entries(allHomeworkData).forEach(([dKey, hws]) => { const dDate = new Date(dKey); Object.entries(hws).forEach(([id, hw]) => { if(!completed[id]) { items.push({ id, hw, date: dDate, diff: Math.ceil((dDate - today) / (86400000)) }); } }); }); items.sort((a,b) => a.date - b.date); if(items.length === 0) { list.innerHTML = '<li class="no-homework">Harika! Hiç ödevin kalmadı 🎉</li>'; return; } items.forEach((item, index) => { let statusClass = item.diff < 0 ? 'overdue' : (item.diff === 0 ? 'today' : ''); let timeText = item.diff < 0 ? `${Math.abs(item.diff)} gün gecikti` : (item.diff === 0 ? 'Bugün' : `${item.diff} gün kaldı`); const li = document.createElement('li'); li.className = `upcoming-item ${statusClass}`; li.style.animationDelay = `${index * 0.05}s`; 
+        const photoBtn = item.hw.imageUrl ? `<button class="action-btn photo-btn" style="margin-right:8px;" onclick="viewImage('${item.hw.imageUrl}')">📷</button>` : '';
+        li.innerHTML = `<div><div class="upcoming-subject">${item.hw.subject}</div><div class="upcoming-task">${item.hw.task}</div><div class="upcoming-date">${timeText} (${item.date.toLocaleDateString('tr-TR')})</div></div><div style="display:flex;">${photoBtn}<button class="action-btn tick-btn" onclick="toggleHomeworkCompletion('${item.id}', true, this)">✓</button></div>`; list.appendChild(li); }); }
 
         // Init
         initTheme(); loadLastUpdateTime(); renderWeek();
-        onValue(ref(database, 'homework'), snp => { allHomeworkData = snp.val() || {}; if(currentView === 'graph') loadGraphData(); if(currentView === 'upcoming') loadUpcomingHomeworks(); });
+        
+        // Data Listeners
+        onValue(ref(database, 'homework'), snp => { 
+            allHomeworkData = snp.val() || {}; 
+            if(currentView === 'graph') loadGraphData(); 
+            if(currentView === 'upcoming') loadUpcomingHomeworks();
+            if(currentView === 'calendar') renderWeek(); 
+        });
+
+        onValue(ref(database, 'exams'), snp => {
+            allExamsData = snp.val() || {};
+            if(currentView === 'exams') loadExams();
+        });
+
         document.body.addEventListener('click', initAudio, { once: true });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePasswordModal(); closeHomeworkModal(); } });
+        document.addEventListener('keydown', (e) => { 
+            if (e.key === 'Escape') { 
+                closePasswordModal(); 
+                closeHomeworkModal(); 
+                closeExamModal();
+                closeImageModal(e, true);
+            } 
+        });
     </script>
-</body>
-</html>
