@@ -1,23 +1,29 @@
 {
   "name": "Ödev Listesi",
   "short_name": "Ödev Listesi",
-  "description": "Ödev Listesi",
-  "start_url": "index.html",
+  "description": "10/A sınıfı için haftalık ödev takip uygulaması",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f8f2e5",
-  "theme_color": "#003049",
-  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%233b82f6'/%3E%3Cpath d='M160 120h192c13.3 0 24 10.7 24 24v224c0 13.3-10.7 24-24 24H160c-13.3 0-24-10.7-24-24V144c0-13.3 10.7-24 24-24z' fill='white'/%3E%3Cpath d='M180 180h152M180 240h152M180 300h100' stroke='%233b82f6' stroke-width='16' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%233b82f6'/%3E%3Cpath d='M60 45h72c5 0 9 4 9 9v84c0 5-4 9-9 9H60c-5 0-9-4-9-9V54c0-5 4-9 9-9z' fill='white'/%3E%3Cpath d='M68 68h56M68 90h56M68 112h38' stroke='%233b82f6' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
-  ]
-
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "tr",
+  "dir": "ltr",
+  "scope": "./",
+  "prefer_related_applications": false
 }

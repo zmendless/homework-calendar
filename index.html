@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="tr" data-theme="light">
 <head>
-    <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#000000">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#3b82f6">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ödev Listesi">
     <title>10/A Ödev Listesi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -666,12 +669,11 @@
 
 <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        // Storage importlarını sildik, sadece database kaldı
         import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDs-4yX-jqxXgrVYL2lLcaY5K2GG_dkcmU",
-            authDomain: "homework-calendar-ofl.firebaseapp.com",
+            authDomain: "homework-calendar-ofl.firebasestorage.app",
             databaseURL: "https://homework-calendar-ofl-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "homework-calendar-ofl",
             storageBucket: "homework-calendar-ofl.firebasestorage.app",
@@ -682,9 +684,132 @@
 
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
-        // const storage = getStorage(app); // ARTIK KULLANILMIYOR
 
-        // --- PWA AUTO-CONFIGURATION ---
+        // --- PWA SETUP (IMPROVED) ---
+        let deferredPrompt = null;
+        let isPwaInstalled = false;
+
+        // Register Service Worker with better error handling
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered successfully:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // Check if already installed
+        window.addEventListener('load', () => {
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+                isPwaInstalled = true;
+                console.log('✅ App is running in standalone mode (already installed)');
+            }
+        });
+
+        // Listen for beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('✅ beforeinstallprompt event fired');
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Don't show if user previously dismissed
+            if (!localStorage.getItem('pwaDismissed') && !isPwaInstalled) {
+                setTimeout(() => {
+                    showAndroidPrompt();
+                }, 2000); // Show after 2 seconds
+            }
+        });
+
+        // Listen for successful installation
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ PWA was installed');
+            isPwaInstalled = true;
+            deferredPrompt = null;
+            localStorage.removeItem('pwaDismissed');
+            hideInstallPrompts();
+        });
+
+        function showAndroidPrompt() {
+            console.log('📱 Showing Android install prompt');
+            const prompt = document.getElementById('installPrompt');
+            if (prompt) {
+                prompt.classList.add('active');
+                playSound('pop');
+            }
+        }
+
+        function hideInstallPrompts() {
+            document.getElementById('installPrompt')?.classList.remove('active');
+            document.getElementById('iosPrompt')?.classList.remove('active');
+        }
+
+        window.installPWA = async () => {
+            console.log('📥 Install button clicked');
+            
+            if (!deferredPrompt) {
+                console.log('⚠️ No deferred prompt available');
+                alert('Kurulum başlatılamadı.\n\nLütfen tarayıcınızın adres çubuğundaki kurulum ikonunu kullanın veya tarayıcı menüsünden "Uygulamayı Yükle" seçeneğini seçin.');
+                return;
+            }
+
+            hideInstallPrompts();
+            
+            try {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`👤 User response to install prompt: ${outcome}`);
+                
+                if (outcome === 'accepted') {
+                    console.log('✅ User accepted the install prompt');
+                    isPwaInstalled = true;
+                } else {
+                    console.log('❌ User dismissed the install prompt');
+                }
+                
+                deferredPrompt = null;
+            } catch (error) {
+                console.error('❌ Error during installation:', error);
+            }
+        };
+
+        window.dismissInstall = () => {
+            console.log('🚫 User dismissed install prompt');
+            hideInstallPrompts();
+            localStorage.setItem('pwaDismissed', 'true');
+            playSound('click');
+        };
+
+        window.closeIosPrompt = () => {
+            hideInstallPrompts();
+            localStorage.setItem('pwaDismissed', 'true');
+            playSound('click');
+        };
+
+        // iOS detection and prompt
+        const isIos = () => {
+            const userAgent = window.navigator.userAgent.toLowerCase();
+            return /iphone|ipad|ipod/.test(userAgent);
+        };
+
+        const isInStandaloneMode = () => {
+            return ('standalone' in window.navigator) && (window.navigator.standalone);
+        };
+
+        // Show iOS prompt if applicable
+        if (isIos() && !isInStandaloneMode() && !localStorage.getItem('pwaDismissed')) {
+            setTimeout(() => {
+                console.log('📱 Showing iOS install instructions');
+                const iosPrompt = document.getElementById('iosPrompt');
+                if (iosPrompt) {
+                    iosPrompt.classList.add('active');
+                    playSound('pop');
+                }
+            }, 3000);
+        }
 
         // --- GLOBAL VARIABLES ---
         let currentWeekOffset = 0;
@@ -726,6 +851,54 @@ async function processMultipleFiles(files) {
     return await Promise.all(promises);
 }
 
+window.saveExam = async function() {
+    const date = document.getElementById('examDateInput').value;
+    const subject = document.getElementById('examSubjectInput').value.trim();
+    const topics = document.getElementById('examTopicsInput').value.trim();
+    const fileInput = document.getElementById('examFileInput');
+    const btn = document.getElementById('saveExamBtnConfirm');
+
+    if (date && subject && topics) {
+        btn.disabled = true;
+        btn.textContent = "Yükleniyor...";
+        
+        let imageUrls = null;
+        
+        if(fileInput && fileInput.files && fileInput.files.length > 0) {
+            try {
+                imageUrls = await processMultipleFiles(fileInput.files);
+            } catch (e) {
+                console.error("Görsel işleme hatası:", e);
+                alert("Fotoğraflar işlenirken bir hata oluştu.");
+            }
+        }
+
+        try {
+            await push(ref(database, 'exams'), {
+                date: date,
+                subject: subject,
+                topics: topics,
+                imageUrls: imageUrls || null,
+                createdAt: Date.now()
+            });
+
+            window.triggerConfetti(btn);
+            playSound('success');
+            closeExamModal();
+            updateLastUpdateTime();
+        } catch (error) {
+            console.error("Firebase hata:", error);
+            alert("Sınav kaydedilemedi.");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Sınavı Kaydet";
+        }
+    } else {
+        playSound('delete');
+        alert('Lütfen tüm alanları doldurun.');
+    }
+}
+
         function playSound(type) {
             if (isMuted) return;
             initAudio();
@@ -755,87 +928,7 @@ async function processMultipleFiles(files) {
             }
         }
         
-        // --- PWA INSTALL LOGIC ---
-        let deferredPrompt;
-        let isPwaDetected = false;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            isPwaDetected = true;
-            showAndroidPrompt();
-        });
-
-        function showAndroidPrompt() {
-            if(!localStorage.getItem('pwaDismissed')) {
-                document.getElementById('installPrompt').classList.add('active');
-                playSound('pop');
-            }
-        }
-
-        
-
-        window.installPWA = async () => {
-            if (deferredPrompt) {
-                document.getElementById('installPrompt').classList.remove('active');
-                deferredPrompt.prompt();
-                deferredPrompt = null;
-            } else {
-                alert('Otomatik kurulum başlatılamadı.\n\nLütfen tarayıcınızın menüsünden "Uygulamayı Yükle" veya "Ana Ekrana Ekle" seçeneğini kullanın.');
-            }
-        };
-
-        window.dismissInstall = () => {
-            document.getElementById('installPrompt').classList.remove('active');
-            localStorage.setItem('pwaDismissed', 'true');
-            playSound('click');
-        };
-
-        window.closeIosPrompt = () => {
-            document.getElementById('iosPrompt').classList.remove('active');
-            localStorage.setItem('pwaDismissed', 'true');
-            playSound('click');
-        };
-
-        const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-        const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
-
-        setTimeout(() => {
-            if (isInStandaloneMode()) return;
-            if (localStorage.getItem('pwaDismissed')) return;
-            if (isIos()) {
-                document.getElementById('iosPrompt').classList.add('active');
-                playSound('pop');
-            }
-        }, 3000);
-        
-        // --- THEME & UI LOGIC ---
-        window.toggleTheme = function() {
-            playSound('click');
-            const html = document.documentElement;
-            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            const btn = document.getElementById('themeToggle');
-            btn.textContent = next === 'dark' ? '🌙' : '☀️';
-            btn.style.transform = 'rotate(360deg)';
-            setTimeout(() => btn.style.transform = '', 300);
-        }
-
-        function initTheme() {
-            const saved = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', saved);
-            document.getElementById('themeToggle').textContent = saved === 'dark' ? '🌙' : '☀️';
-            updateSoundIcon();
-        }
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./service-worker.js');
-}
-
-
         // --- IMAGE LOGIC (BASE64 & COMPRESSION) ---
-        // Storage yerine Resmi Sıkıştırıp Base64'e çeviren fonksiyon
         function compressAndConvertToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -847,7 +940,6 @@ if ('serviceWorker' in navigator) {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         
-                        // Maksimum boyut ayarları (Database şişmemesi için önemli)
                         const MAX_WIDTH = 800;
                         const MAX_HEIGHT = 800;
                         let width = img.width;
@@ -869,7 +961,6 @@ if ('serviceWorker' in navigator) {
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // JPEG formatında 0.6 kalitesinde sıkıştır
                         const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                         resolve(dataUrl);
                     };
@@ -882,7 +973,7 @@ if ('serviceWorker' in navigator) {
         window.viewImage = function(url) {
             const modal = document.getElementById('imageModal');
             const img = document.getElementById('fullImage');
-            img.src = url; // Base64 string doğrudan src'ye atanabilir
+            img.src = url;
             modal.classList.add('active');
             playSound('pop');
         }
@@ -940,7 +1031,6 @@ if ('serviceWorker' in navigator) {
             return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
         }
 
-// --- RENDER WEEK GÜNCELLEMESİ ---
 function renderWeek() {
     const weekDates = getWeekDates(currentWeekOffset);
     document.getElementById('weekDisplay').textContent = `${weekDates[0].getDate()} ${monthNamesShort[weekDates[0].getMonth()]} - ${weekDates[4].getDate()} ${monthNamesShort[weekDates[4].getMonth()]}`;
@@ -962,15 +1052,13 @@ function renderWeek() {
         `;
         daysGrid.appendChild(dayCard);
         
-        // DÜZELTME: listElement parametresini burada çekip gönderiyoruz
         const listElement = document.getElementById(`homework-${dateKey}`);
         loadHomework(dateKey, listElement);
     });
 }
 
-// --- LOAD HOMEWORK GÜNCELLEMESİ ---
 function loadHomework(dateKey, listElement) {
-    if (!listElement) return; // Güvenlik kontrolü
+    if (!listElement) return;
     listElement.innerHTML = '';
     
     const dayData = allHomeworkData[dateKey];
@@ -979,7 +1067,6 @@ function loadHomework(dateKey, listElement) {
         return;
     }
 
-    // userId tanımlı değilse hata vermemesi için
     const userId = "admin"; 
 
     Object.entries(dayData).forEach(([id, hw]) => {
@@ -987,7 +1074,6 @@ function loadHomework(dateKey, listElement) {
         const li = document.createElement('li');
         li.className = 'homework-item';
         
-        // Çoklu görsel işleme
         let homeworkPhotosHtml = '';
         if (hw.imageUrls && Array.isArray(hw.imageUrls)) {
             homeworkPhotosHtml = `<div class="hw-img-grid">`;
@@ -1018,107 +1104,104 @@ function loadHomework(dateKey, listElement) {
     });
 }
 
-        // --- EXAM FUNCTIONS ---
-function loadExams() {
-    const list = document.getElementById('examsList');
-    
-    if (!allExamsData || Object.keys(allExamsData).length === 0) {
-        list.innerHTML = '<p class="no-homework" style="grid-column: 1/-1;">Henüz girilmiş bir sınav yok.</p>';
-        return;
-    }
+        function loadExams() {
+            const list = document.getElementById('examsList');
+            
+            if (!allExamsData || Object.keys(allExamsData).length === 0) {
+                list.innerHTML = '<p class="no-homework" style="grid-column: 1/-1;">Henüz girilmiş bir sınav yok.</p>';
+                return;
+            }
 
-    list.innerHTML = '';
-    
-    // Verileri diziye çevir ve tarihe göre sırala
-    const exams = Object.entries(allExamsData).map(([id, exam]) => ({ id, ...exam }));
-    exams.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+            list.innerHTML = '';
+            
+            const exams = Object.entries(allExamsData).map(([id, exam]) => ({ id, ...exam }));
+            exams.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-    exams.forEach((exam) => {
-        const examDate = new Date(exam.date);
-        const timeDiff = examDate - today;
-        const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-        
-        if (daysLeft < -2) return;
+            exams.forEach((exam) => {
+                const examDate = new Date(exam.date);
+                const timeDiff = examDate - today;
+                const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+                
+                if (daysLeft < -2) return;
 
-        let daysText = "";
-        let statusClass = "countdown-normal";
+                let daysText = "";
+                let statusClass = "countdown-normal";
 
-        if (daysLeft < 0) { 
-            daysText = `${Math.abs(daysLeft)} gün önceydi`; 
-            statusClass = "countdown-text"; 
-        }
-        else if (daysLeft === 0) { 
-            daysText = "BUGÜN!"; 
-            statusClass = "countdown-urgent"; 
-        }
-        else if (daysLeft === 1) { 
-            daysText = "Yarın"; 
-            statusClass = "countdown-urgent"; 
-        }
-        else if (daysLeft <= 3) { 
-            daysText = `${daysLeft} gün kaldı`; 
-            statusClass = "countdown-warning"; 
-        }
-        else { 
-            daysText = `${daysLeft} gün kaldı`; 
-        }
+                if (daysLeft < 0) { 
+                    daysText = `${Math.abs(daysLeft)} gün önceydi`; 
+                    statusClass = "countdown-text"; 
+                }
+                else if (daysLeft === 0) { 
+                    daysText = "BUGÜN!"; 
+                    statusClass = "countdown-urgent"; 
+                }
+                else if (daysLeft === 1) { 
+                    daysText = "Yarın"; 
+                    statusClass = "countdown-urgent"; 
+                }
+                else if (daysLeft <= 3) { 
+                    daysText = `${daysLeft} gün kaldı`; 
+                    statusClass = "countdown-warning"; 
+                }
+                else { 
+                    daysText = `${daysLeft} gün kaldı`; 
+                }
 
-        const formattedDate = `${examDate.getDate()} ${monthNamesShort[examDate.getMonth()]}`;
-        
-        // --- Çoklu Görsel İşleme Mantığı ---
-        let examPhotosHtml = '';
-        
-        // Yeni yapı: imageUrls (dizi) varsa
-        if (exam.imageUrls && Array.isArray(exam.imageUrls)) {
-            examPhotosHtml = `<div class="exam-img-grid">`;
-            exam.imageUrls.forEach(url => {
-                examPhotosHtml += `
-                    <div class="exam-img-container" onclick="viewImage('${url}')">
-                        <img src="${url}" class="exam-embed-img" alt="Sınav Notu">
-                    </div>`;
-            });
-            examPhotosHtml += `</div>`;
-        } 
-        // Eski yapı: Sadece tek bir imageUrl varsa (Geriye dönük uyumluluk)
-        else if (exam.imageUrl) {
-            examPhotosHtml = `
-                <div class="exam-img-grid">
-                    <div class="exam-img-container" onclick="viewImage('${exam.imageUrl}')">
-                        <img src="${exam.imageUrl}" class="exam-embed-img" alt="Sınav Notu">
+                const formattedDate = `${examDate.getDate()} ${monthNamesShort[examDate.getMonth()]}`;
+                
+                let examPhotosHtml = '';
+                
+                if (exam.imageUrls && Array.isArray(exam.imageUrls)) {
+                    examPhotosHtml = `<div class="exam-img-grid">`;
+                    exam.imageUrls.forEach(url => {
+                        examPhotosHtml += `
+                            <div class="exam-img-container" onclick="viewImage('${url}')">
+                                <img src="${url}" class="exam-embed-img" alt="Sınav Notu">
+                            </div>`;
+                    });
+                    examPhotosHtml += `</div>`;
+                } 
+                else if (exam.imageUrl) {
+                    examPhotosHtml = `
+                        <div class="exam-img-grid">
+                            <div class="exam-img-container" onclick="viewImage('${exam.imageUrl}')">
+                                <img src="${exam.imageUrl}" class="exam-embed-img" alt="Sınav Notu">
+                            </div>
+                        </div>`;
+                }
+
+                const deleteBtn = isEditMode ? `<button class="delete-exam-btn" onclick="deleteExam('${exam.id}')" title="Sınavı Sil">✕</button>` : '';
+
+                const card = document.createElement('div');
+                card.className = 'exam-card';
+                card.innerHTML = `
+                    <div class="exam-header">
+                        <span class="exam-subject">${exam.subject}</span>
+                        <span class="exam-date-badge">${formattedDate}</span>
                     </div>
-                </div>`;
+                    <div class="exam-topics" style="margin-bottom: 8px;">${exam.topics}</div>
+                    
+                    ${examPhotosHtml} 
+                    
+                    <div class="exam-countdown">
+                        <div>
+                           <span class="${statusClass} countdown-text">${daysText}</span>
+                        </div>
+                        ${deleteBtn}
+                    </div>
+                `;
+                list.appendChild(card);
+            });
         }
 
-        const deleteBtn = isEditMode ? `<button class="delete-exam-btn" onclick="deleteExam('${exam.id}')" title="Sınavı Sil">✕</button>` : '';
-
-        const card = document.createElement('div');
-        card.className = 'exam-card';
-        card.innerHTML = `
-            <div class="exam-header">
-                <span class="exam-subject">${exam.subject}</span>
-                <span class="exam-date-badge">${formattedDate}</span>
-            </div>
-            <div class="exam-topics" style="margin-bottom: 8px;">${exam.topics}</div>
-            
-            ${examPhotosHtml} 
-            
-            <div class="exam-countdown">
-                <div>
-                   <span class="${statusClass} countdown-text">${daysText}</span>
-                </div>
-                ${deleteBtn}
-            </div>
-        `;
-        list.appendChild(card);
-    });
-}
         window.openExamModal = function() {
             playSound('pop');
             document.getElementById('examModal').classList.add('active');
         }
+        
         window.closeExamModal = function() {
             playSound('click');
             document.getElementById('examModal').classList.remove('active');
@@ -1127,8 +1210,6 @@ function loadExams() {
             document.getElementById('examTopicsInput').value = '';
             document.getElementById('examFileInput').value = '';
         }
-        
-        
         
         window.deleteExam = function(id) {
             playSound('delete');
@@ -1163,7 +1244,6 @@ function loadExams() {
 
         window.triggerConfetti = function(element) { const rect = element.getBoundingClientRect(); confetti({ particleCount: 60, spread: 70, origin: { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight }, colors: ['#3b82f6', '#8b5cf6', '#10b981', '#fbbf24'], disableForReducedMotion: true, zIndex: 2000 }); }
 
-        // --- MODAL & EDIT ---
         window.toggleEditMode = () => { playSound('pop'); document.getElementById('passwordModal').classList.add('active'); setTimeout(() => document.getElementById('passwordInput').focus(), 100); };
         window.closePasswordModal = () => { playSound('click'); document.getElementById('passwordModal').classList.remove('active'); };
         
@@ -1197,9 +1277,8 @@ function loadExams() {
         window.openHomeworkModal = function(key) { playSound('pop'); currentEditDay = key; document.getElementById('homeworkModal').classList.add('active'); setTimeout(() => document.getElementById('subjectInput').focus(), 100); }
         window.closeHomeworkModal = function() { playSound('click'); document.getElementById('homeworkModal').classList.remove('active'); document.getElementById('subjectInput').value = ''; document.getElementById('homeworkInput').value = ''; document.getElementById('homeworkFileInput').value = ''; currentEditDay = null; }
         
-        // --- MODIFIED SAVE HOMEWORK ---
 window.saveHomework = async function() {
-    const dateKey = currentEditDay; // Mevcut seçili günü temsil eder
+    const dateKey = currentEditDay;
     const subject = document.getElementById('subjectInput').value.trim();
     const task = document.getElementById('homeworkInput').value.trim();
     const fileInput = document.getElementById('homeworkFileInput');
@@ -1213,7 +1292,6 @@ window.saveHomework = async function() {
         
         let imageUrls = null;
         
-        // Dosya yükleme kontrolü
         if(fileInput && fileInput.files && fileInput.files.length > 0) {
             try {
                 imageUrls = await processMultipleFiles(fileInput.files);
@@ -1224,7 +1302,6 @@ window.saveHomework = async function() {
         }
 
         try {
-            // "date" yerine "dateKey" kullanılarak hata düzeltildi
             await push(ref(database, `homework/${dateKey}`), {
                 subject: subject,
                 task: task,
@@ -1258,8 +1335,30 @@ window.saveHomework = async function() {
         const photoBtn = item.hw.imageUrl ? `<button class="action-btn photo-btn" style="margin-right:8px;" onclick="viewImage('${item.hw.imageUrl}')">📷</button>` : '';
         li.innerHTML = `<div><div class="upcoming-subject">${item.hw.subject}</div><div class="upcoming-task">${item.hw.task}</div><div class="upcoming-date">${timeText} (${item.date.toLocaleDateString('tr-TR')})</div></div><div style="display:flex;">${photoBtn}<button class="action-btn tick-btn" onclick="toggleHomeworkCompletion('${item.id}', true, this)">✓</button></div>`; list.appendChild(li); }); }
 
+        // --- THEME SETUP ---
+        window.toggleTheme = function() {
+            playSound('click');
+            const html = document.documentElement;
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            const btn = document.getElementById('themeToggle');
+            btn.textContent = next === 'dark' ? '🌙' : '☀️';
+            btn.style.transform = 'rotate(360deg)';
+            setTimeout(() => btn.style.transform = '', 300);
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+            document.getElementById('themeToggle').textContent = saved === 'dark' ? '🌙' : '☀️';
+            updateSoundIcon();
+        }
+
         // Init
-        initTheme(); loadLastUpdateTime(); renderWeek();
+        initTheme(); 
+        loadLastUpdateTime(); 
+        renderWeek();
         
         // Data Listeners
         onValue(ref(database, 'homework'), snp => { 
@@ -1284,3 +1383,5 @@ window.saveHomework = async function() {
             } 
         });
     </script>
+</body>
+</html>

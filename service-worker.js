@@ -1,43 +1,84 @@
-const CACHE_NAME = 'list'; 
+const CACHE_NAME = 'homework-app-v1';
 const urlsToCache = [
-  'index.html',
-  'manifest.json',
+  './',
+  './index.html',
+  './manifest.json',
+  'https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap',
+  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js'
 ];
 
-self.addEventListener('install', event => {
+// Install event - cache resources
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+      .then((cache) => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+      .catch((err) => {
+        console.log('Cache failed:', err);
+      })
   );
-  self.skipWaiting(); // Force the waiting service worker to become active
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map(cacheName => {
+        cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName); // Delete old caches
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => {
-      // Notify all clients (pages) to clear localStorage
-      return self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({ action: 'clear-local-storage' });
-        });
-      });
     })
   );
-  return self.clients.claim(); // Take control of all pages
+  self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
+// Fetch event - serve from cache, fallback to network
+self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
-      .then(response => response || fetch(event.request))
+      .then((response) => {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+        
+        // Clone the request
+        const fetchRequest = event.request.clone();
+        
+        return fetch(fetchRequest).then((response) => {
+          // Check if valid response
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+          
+          // Clone the response
+          const responseToCache = response.clone();
+          
+          // Cache the fetched response
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          
+          return response;
+        });
+      })
+      .catch(() => {
+        // If both cache and network fail, show offline page or fallback
+        return new Response('Offline - Please check your connection', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({
+            'Content-Type': 'text/plain'
+          })
+        });
+      })
   );
 });
-
